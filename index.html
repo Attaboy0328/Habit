@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>每日打卡</title>
+  <title>Habit</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -16,12 +16,22 @@
         <p class="eyebrow">Daily Momentum</p>
         <h1>把坚持这件事，做得更有成就感。</h1>
         <p class="hero__text">
-          用轻量、明确、可视化的方式记录每天完成的习惯。
-          今天勾一下，明天更容易继续。
+          支持电脑和手机两种查看模式，习惯项预设好了常用项目，并配有图标。
         </p>
       </div>
+
       <div class="hero__card">
-        <p class="hero__date" id="todayLabel"></p>
+        <div class="hero__topline">
+          <div>
+            <p class="hero__date" id="todayLabel"></p>
+            <p class="hero__subtext" id="modeHint">当前为自动模式</p>
+          </div>
+          <div class="view-switch" role="tablist" aria-label="显示模式切换">
+            <button type="button" class="view-switch__btn is-active" data-view="auto">自动</button>
+            <button type="button" class="view-switch__btn" data-view="desktop">电脑</button>
+            <button type="button" class="view-switch__btn" data-view="mobile">手机</button>
+          </div>
+        </div>
         <div class="hero__progress">
           <span id="completedCount">0</span>
           <small>/ <span id="totalCount">0</span> 个习惯完成</small>
@@ -33,12 +43,22 @@
       </div>
     </header>
 
-    <main class="dashboard">
+    <main class="dashboard" id="dashboard">
+      <section class="panel panel--preset">
+        <div class="panel__header">
+          <div>
+            <p class="section-kicker">Preset</p>
+            <h2>预设打卡项目</h2>
+          </div>
+        </div>
+        <div id="presetGrid" class="preset-grid"></div>
+      </section>
+
       <section class="panel panel--form">
         <div class="panel__header">
           <div>
             <p class="section-kicker">New Habit</p>
-            <h2>添加打卡目标</h2>
+            <h2>添加自定义项目</h2>
           </div>
         </div>
 
@@ -57,7 +77,7 @@
         </form>
       </section>
 
-      <section class="panel">
+      <section class="panel panel--today">
         <div class="panel__header">
           <div>
             <p class="section-kicker">Today</p>
@@ -82,8 +102,9 @@
 
   <template id="habitItemTemplate">
     <article class="habit-card">
+      <div class="habit-card__icon"></div>
       <div class="habit-card__main">
-        <div>
+        <div class="habit-card__text">
           <h3 class="habit-card__title"></h3>
           <p class="habit-card__goal"></p>
         </div>
@@ -93,6 +114,14 @@
         </div>
       </div>
     </article>
+  </template>
+
+  <template id="presetCardTemplate">
+    <button class="preset-card" type="button">
+      <span class="preset-card__icon"></span>
+      <span class="preset-card__name"></span>
+      <span class="preset-card__meta"></span>
+    </button>
   </template>
 
   <script src="app.js"></script>

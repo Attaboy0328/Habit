@@ -1,37 +1,42 @@
-const STORAGE_KEY = "daily-check-app-v1";
+const STORAGE_KEY = "daily-check-app-v2";
+const VIEW_KEY = "daily-check-view-v1";
 
-const defaultHabits = [
-  {
-    id: crypto.randomUUID(),
-    name: "晨间拉伸",
-    goal: "先动起来，状态自然会跟上。",
-    createdAt: new Date().toISOString(),
-    history: {}
-  },
-  {
-    id: crypto.randomUUID(),
-    name: "英语 30 分钟",
-    goal: "每天一点点，长期最有力量。",
-    createdAt: new Date().toISOString(),
-    history: {}
-  }
+const presetHabits = [
+  { id: "study", name: "学习", goal: "今天也要稳稳地推进一点。", icon: "📚", aliases: ["学习", "读书", "自习"] },
+  { id: "run", name: "跑步", goal: "跑一跑，让状态跟上来。", icon: "🏃", aliases: ["跑步", "晨跑", "夜跑"] },
+  { id: "yoga", name: "瑜伽", goal: "舒展身体，放松呼吸。", icon: "🧘", aliases: ["瑜伽", "拉伸", "伸展"] },
+  { id: "moxa", name: "艾灸", goal: "温养一下，给身体一点照顾。", icon: "🔥", aliases: ["艾灸", "温灸"] },
+  { id: "bathroom", name: "排便", goal: "照顾好基础生理节律。", icon: "🚻", aliases: ["排便", "上厕所"] },
+  { id: "nap", name: "午睡", goal: "补一小觉，下午更有劲。", icon: "😴", aliases: ["午睡", "小睡", "补觉"] },
+  { id: "clean", name: "搞卫生", goal: "把环境整理好，心也会轻一点。", icon: "🧹", aliases: ["搞卫生", "打扫", "清洁"] },
+  { id: "switch", name: "玩 Switch", goal: "适度放松，给自己一点奖励。", icon: "🎮", aliases: ["玩Switch", "玩 Switch", "游戏"] },
+  { id: "words", name: "背单词", goal: "每天积累一点，长期很可观。", icon: "📝", aliases: ["背单词", "英语单词", "记单词"] }
 ];
 
-const state = loadState();
+const defaultHabits = presetHabits.map((item) => createHabitFromPreset(item));
+
 const elements = {
   todayLabel: document.querySelector("#todayLabel"),
   completedCount: document.querySelector("#completedCount"),
   totalCount: document.querySelector("#totalCount"),
   progressBar: document.querySelector("#progressBar"),
   progressMessage: document.querySelector("#progressMessage"),
+  modeHint: document.querySelector("#modeHint"),
   streakSummary: document.querySelector("#streakSummary"),
   habitList: document.querySelector("#habitList"),
   calendarGrid: document.querySelector("#calendarGrid"),
+  presetGrid: document.querySelector("#presetGrid"),
   habitForm: document.querySelector("#habitForm"),
   habitName: document.querySelector("#habitName"),
   habitGoal: document.querySelector("#habitGoal"),
-  habitItemTemplate: document.querySelector("#habitItemTemplate")
+  habitItemTemplate: document.querySelector("#habitItemTemplate"),
+  presetCardTemplate: document.querySelector("#presetCardTemplate"),
+  viewButtons: Array.from(document.querySelectorAll(".view-switch__btn")),
+  dashboard: document.querySelector("#dashboard")
 };
+
+const state = loadState();
+const viewState = loadViewState();
 
 elements.habitForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -43,17 +48,17 @@ elements.habitForm.addEventListener("submit", (event) => {
     return;
   }
 
-  state.habits.unshift({
-    id: crypto.randomUUID(),
-    name,
-    goal: goal || "记录一次完成，让坚持被看见。",
-    createdAt: new Date().toISOString(),
-    history: {}
-  });
+  state.habits.unshift(createCustomHabit(name, goal));
 
   saveState();
   elements.habitForm.reset();
   render();
+});
+
+elements.viewButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setView(button.dataset.view);
+  });
 });
 
 render();
@@ -76,11 +81,34 @@ function loadState() {
   }
 }
 
+function loadViewState() {
+  const raw = localStorage.getItem(VIEW_KEY);
+  if (!raw) {
+    return { view: "mobile" };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!["auto", "desktop", "mobile"].includes(parsed.view)) {
+      return { view: "mobile" };
+    }
+    return parsed;
+  } catch {
+    return { view: "mobile" };
+  }
+}
+
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function saveViewState() {
+  localStorage.setItem(VIEW_KEY, JSON.stringify(viewState));
+}
+
 function render() {
+  renderViewMode();
+  renderPresetHabits();
   renderHeader();
   renderHabits();
   renderCalendar();
@@ -101,6 +129,40 @@ function renderHeader() {
   elements.progressMessage.textContent = getProgressMessage(ratio, totalHabits);
 }
 
+function renderViewMode() {
+  elements.viewButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.view === viewState.view);
+  });
+
+  const modeLabelMap = {
+    auto: "当前为自动模式",
+    desktop: "当前为电脑模式",
+    mobile: "当前为手机首页模式"
+  };
+
+  elements.modeHint.textContent = modeLabelMap[viewState.view] || modeLabelMap.auto;
+  elements.dashboard.dataset.view = viewState.view;
+}
+
+function renderPresetHabits() {
+  elements.presetGrid.innerHTML = "";
+
+  presetHabits.forEach((preset) => {
+    const fragment = elements.presetCardTemplate.content.cloneNode(true);
+    const card = fragment.querySelector(".preset-card");
+    const icon = fragment.querySelector(".preset-card__icon");
+    const name = fragment.querySelector(".preset-card__name");
+    const meta = fragment.querySelector(".preset-card__meta");
+
+    icon.textContent = preset.icon;
+    name.textContent = preset.name;
+    meta.textContent = preset.goal;
+
+    card.addEventListener("click", () => addPresetHabit(preset));
+    elements.presetGrid.appendChild(fragment);
+  });
+}
+
 function renderHabits() {
   elements.habitList.innerHTML = "";
 
@@ -119,12 +181,14 @@ function renderHabits() {
   state.habits.forEach((habit) => {
     const fragment = elements.habitItemTemplate.content.cloneNode(true);
     const card = fragment.querySelector(".habit-card");
+    const icon = fragment.querySelector(".habit-card__icon");
     const title = fragment.querySelector(".habit-card__title");
     const goal = fragment.querySelector(".habit-card__goal");
     const streak = fragment.querySelector(".streak-pill");
     const button = fragment.querySelector(".check-button");
     const isChecked = Boolean(habit.history[todayKey]);
 
+    icon.textContent = habit.icon || "•";
     title.textContent = habit.name;
     goal.textContent = habit.goal;
     streak.textContent = `连续 ${calculateStreak(habit)} 天`;
@@ -185,6 +249,23 @@ function toggleHabit(habitId, dateKey) {
     delete target.history[dateKey];
   } else {
     target.history[dateKey] = true;
+  }
+
+  saveState();
+  render();
+}
+
+function addPresetHabit(preset) {
+  const exists = state.habits.some((habit) => habit.presetId === preset.id);
+
+  if (exists) {
+    const existing = state.habits.find((habit) => habit.presetId === preset.id);
+    if (existing) {
+      const todayKey = formatDateKey(new Date());
+      existing.history[todayKey] = true;
+    }
+  } else {
+    state.habits.unshift(createHabitFromPreset(preset));
   }
 
   saveState();
@@ -256,4 +337,33 @@ function getProgressMessage(ratio, totalHabits) {
   }
 
   return "先完成最容易的一项，行动会带动后面的动力。";
+}
+
+function setView(view) {
+  viewState.view = view;
+  saveViewState();
+  render();
+}
+
+function createHabitFromPreset(preset) {
+  return {
+    id: crypto.randomUUID(),
+    presetId: preset.id,
+    name: preset.name,
+    goal: preset.goal,
+    icon: preset.icon,
+    createdAt: new Date().toISOString(),
+    history: {}
+  };
+}
+
+function createCustomHabit(name, goal) {
+  return {
+    id: crypto.randomUUID(),
+    name,
+    goal: goal || "记录一次完成，让坚持被看见。",
+    icon: "⭐",
+    createdAt: new Date().toISOString(),
+    history: {}
+  };
 }
