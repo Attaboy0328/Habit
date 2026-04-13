@@ -108,6 +108,23 @@ input {
   margin-bottom: 12px;
 }
 
+.hero-actions {
+  position: relative;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.hero-action-btn {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(33, 28, 24, 0.06);
+  color: var(--muted);
+  font-size: 18px;
+}
+
 .hero__date {
   margin: 0 0 14px;
   color: var(--muted);
@@ -120,16 +137,31 @@ input {
 }
 
 .view-switch {
-  display: inline-flex;
-  padding: 4px;
+  display: none;
+  position: absolute;
+  top: 44px;
+  right: 0;
+  flex-direction: column;
+  padding: 6px;
   gap: 4px;
-  border-radius: 999px;
-  background: rgba(33, 28, 24, 0.06);
+  border-radius: 16px;
+  background: rgba(255, 251, 246, 0.98);
+  box-shadow: 0 16px 32px rgba(33, 28, 24, 0.12);
+  border: 1px solid rgba(33, 28, 24, 0.08);
+  min-width: 132px;
+  z-index: 10;
+}
+
+.view-switch.is-open {
+  display: flex;
 }
 
 .view-switch__btn {
+  display: inline-flex;
+  width: 100%;
+  justify-content: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: 12px;
   background: transparent;
   color: var(--muted);
   font-weight: 700;
@@ -138,9 +170,8 @@ input {
 }
 
 .view-switch__btn.is-active {
-  background: white;
+  background: rgba(232, 111, 45, 0.12);
   color: var(--text);
-  box-shadow: 0 8px 18px rgba(33, 28, 24, 0.08);
 }
 
 .hero__progress {
@@ -242,6 +273,21 @@ input {
   box-shadow: 0 8px 18px rgba(33, 28, 24, 0.08);
 }
 
+.fab-button {
+  position: fixed;
+  right: 18px;
+  bottom: 92px;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: white;
+  font-size: 30px;
+  box-shadow: 0 16px 28px rgba(201, 81, 19, 0.28);
+  z-index: 25;
+}
+
 .stats-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -289,8 +335,48 @@ input {
 
 .preset-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
+}
+
+.library-toolbar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.library-search {
+  width: 100%;
+  border: 1px solid rgba(33, 28, 24, 0.08);
+  border-radius: 14px;
+  padding: 13px 15px;
+  background: rgba(255, 255, 255, 0.72);
+  outline: none;
+}
+
+.library-search:focus {
+  border-color: rgba(232, 111, 45, 0.65);
+  box-shadow: 0 0 0 4px rgba(232, 111, 45, 0.12);
+}
+
+.library-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.library-tab {
+  border: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(33, 28, 24, 0.06);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.library-tab.is-active {
+  background: rgba(232, 111, 45, 0.14);
+  color: var(--accent-strong);
 }
 
 .preset-card {
@@ -378,12 +464,12 @@ input {
 
 .habit-list {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .habit-card {
-  padding: 18px;
-  border-radius: 22px;
+  padding: 12px 14px;
+  border-radius: 12px;
   background: var(--surface-strong);
   border: 1px solid rgba(33, 28, 24, 0.06);
   display: grid;
@@ -412,13 +498,14 @@ input {
 
 .habit-card__title {
   margin: 0;
-  font-size: 20px;
+  font-size: 17px;
   font-family: "Outfit", sans-serif;
 }
 
 .habit-card__goal {
-  margin: 8px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
+  font-size: 13px;
 }
 
 .habit-card__meta {

@@ -49,16 +49,21 @@ const elements = {
   habitList: document.querySelector("#habitList"),
   calendarGrid: document.querySelector("#calendarGrid"),
   presetGrid: document.querySelector("#presetGrid"),
+  presetSearch: document.querySelector("#presetSearch"),
   habitForm: document.querySelector("#habitForm"),
   habitName: document.querySelector("#habitName"),
   habitGoal: document.querySelector("#habitGoal"),
   habitItemTemplate: document.querySelector("#habitItemTemplate"),
   presetCardTemplate: document.querySelector("#presetCardTemplate"),
   viewButtons: Array.from(document.querySelectorAll(".view-switch__btn")),
+  modeToggle: document.querySelector("#modeToggle"),
+  viewSwitch: document.querySelector("#viewSwitch"),
   statsButtons: Array.from(document.querySelectorAll(".stats-toggle__btn")),
+  libraryTabs: Array.from(document.querySelectorAll(".library-tab")),
   checkinTotal: document.querySelector("#checkinTotal"),
   habitDoneTotal: document.querySelector("#habitDoneTotal"),
   averageRate: document.querySelector("#averageRate"),
+  fabAdd: document.querySelector("#fabAdd"),
   dashboard: document.querySelector("#dashboard"),
   mobileNavItems: Array.from(document.querySelectorAll(".mobile-nav__item")),
   panels: Array.from(document.querySelectorAll(".panel"))
@@ -91,6 +96,12 @@ elements.viewButtons.forEach((button) => {
   });
 });
 
+if (elements.modeToggle && elements.viewSwitch) {
+  elements.modeToggle.addEventListener("click", () => {
+    elements.viewSwitch.classList.toggle("is-open");
+  });
+}
+
 elements.mobileNavItems.forEach((button) => {
   button.addEventListener("click", () => {
     setMobileScreen(button.dataset.screen);
@@ -102,6 +113,24 @@ elements.statsButtons.forEach((button) => {
     setStatsRange(button.dataset.range);
   });
 });
+
+elements.libraryTabs.forEach((button) => {
+  button.addEventListener("click", () => {
+    elements.libraryTabs.forEach((tab) => tab.classList.toggle("is-active", tab === button));
+    renderPresetHabits();
+  });
+});
+
+if (elements.presetSearch) {
+  elements.presetSearch.addEventListener("input", () => renderPresetHabits());
+}
+
+if (elements.fabAdd) {
+  elements.fabAdd.addEventListener("click", () => {
+    elements.habitName.focus();
+    setView("desktop");
+  });
+}
 
 render();
 
@@ -151,7 +180,7 @@ function loadStatsState() {
 
   try {
     const parsed = JSON.parse(raw);
-    if (!["week", "month"].includes(parsed.range)) {
+    if (!["week", "month", "year"].includes(parsed.range)) {
       return { range: "week" };
     }
     return parsed;
@@ -246,8 +275,17 @@ function renderPanels() {
 
 function renderPresetHabits() {
   elements.presetGrid.innerHTML = "";
+  const query = (elements.presetSearch?.value || "").trim().toLowerCase();
+  const activeCategory = document.querySelector(".library-tab.is-active")?.dataset.category || "all";
 
-  presetHabits.forEach((preset) => {
+  presetHabits
+    .filter((preset) => {
+      const corpus = [preset.name, preset.goal, ...(preset.aliases || [])].join(" ").toLowerCase();
+      const matchesQuery = !query || corpus.includes(query);
+      const matchesCategory = activeCategory === "all" || getPresetCategory(preset) === activeCategory;
+      return matchesQuery && matchesCategory;
+    })
+    .forEach((preset) => {
     const fragment = elements.presetCardTemplate.content.cloneNode(true);
     const card = fragment.querySelector(".preset-card");
     const icon = fragment.querySelector(".preset-card__icon");
@@ -339,7 +377,7 @@ function renderCalendar() {
 }
 
 function renderStatsSummary() {
-  const periodDays = getRecentDays(statsState.range === "month" ? 30 : 7);
+  const periodDays = getStatsPeriodDays(statsState.range);
   const todayKey = formatDateKey(new Date());
   const periodKeys = periodDays.map(formatDateKey);
 
@@ -373,10 +411,6 @@ function renderStatsSummary() {
   elements.statsButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.range === statsState.range);
   });
-
-  if (statsState.range === "month") {
-    elements.modeHint.textContent = `当前为${viewState.view === "desktop" ? "电脑" : "手机"}模式 · 查看本月统计`;
-  }
 }
 
 function toggleHabit(habitId, dateKey) {
@@ -502,6 +536,31 @@ function setStatsRange(range) {
   statsState.range = range;
   saveStatsState();
   render();
+}
+
+function getStatsPeriodDays(range) {
+  if (range === "year") {
+    return Array.from({ length: 52 }, (_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - ((51 - index) * 7));
+      return date;
+    });
+  }
+  return getRecentDays(range === "month" ? 30 : 7);
+}
+
+function getPresetCategory(preset) {
+  const text = `${preset.name} ${preset.goal} ${(preset.aliases || []).join(" ")}`;
+  if (/鍠濇按|璺戞|鍋ヨ韩|鏃╃潯|缁墦|绔嬪埢|鎶ょ溂|鍐ユ兂|鑹剧伕|娲楀ご|娲楁尽|鎺掍究|鍗堢潯|鏁寸悊|鐜?/u.test(text)) {
+    return "health";
+  }
+  if (/鑳屽崟璇?|闃呰|缁冨瓧|鍐欎綔|澶囪€?|鍚挱瀹?|鑻辫|鍒烽|瀛︿範|璇讳功|鑷範/u.test(text)) {
+    return "study";
+  }
+  if (/璁拌处|鎵撴壂|娓呮磥|鏁寸悊|閭欢|娑堟伅|鎴掓墜鏈?|妗岄潰|涓嶄贡鑺遍挶/u.test(text)) {
+    return "life";
+  }
+  return "work";
 }
 
 function createHabitFromPreset(preset) {

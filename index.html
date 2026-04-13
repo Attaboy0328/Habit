@@ -26,10 +26,13 @@
             <p class="hero__date" id="todayLabel"></p>
             <p class="hero__subtext" id="modeHint">当前为自动模式</p>
           </div>
-          <div class="view-switch" role="tablist" aria-label="显示模式切换">
-            <button type="button" class="view-switch__btn is-active" data-view="auto">自动</button>
-            <button type="button" class="view-switch__btn" data-view="desktop">电脑</button>
-            <button type="button" class="view-switch__btn" data-view="mobile">手机</button>
+          <div class="hero-actions">
+            <button type="button" class="hero-action-btn" id="modeToggle" aria-label="切换显示模式">⚙</button>
+            <div class="view-switch" id="viewSwitch" role="menu" aria-label="显示模式切换">
+              <button type="button" class="view-switch__btn is-active" data-view="auto">自动</button>
+              <button type="button" class="view-switch__btn" data-view="desktop">电脑</button>
+              <button type="button" class="view-switch__btn" data-view="mobile">手机</button>
+            </div>
           </div>
         </div>
         <div class="hero__progress">
@@ -85,6 +88,16 @@
             <h2>习惯库</h2>
           </div>
         </div>
+        <div class="library-toolbar">
+          <input id="presetSearch" class="library-search" type="search" placeholder="搜索习惯，例如：跑步、阅读、喝水">
+          <div class="library-tabs" role="tablist" aria-label="习惯分类">
+            <button type="button" class="library-tab is-active" data-category="all">全部</button>
+            <button type="button" class="library-tab" data-category="health">健康</button>
+            <button type="button" class="library-tab" data-category="study">学习</button>
+            <button type="button" class="library-tab" data-category="life">生活</button>
+            <button type="button" class="library-tab" data-category="work">工作</button>
+          </div>
+        </div>
         <div class="library-hint">点击任意习惯卡片即可加入今日打卡列表。</div>
         <div id="presetGrid" class="preset-grid"></div>
       </section>
@@ -98,6 +111,7 @@
           <div class="stats-toggle" role="tablist" aria-label="统计周期切换">
             <button type="button" class="stats-toggle__btn is-active" data-range="week">周</button>
             <button type="button" class="stats-toggle__btn" data-range="month">月</button>
+            <button type="button" class="stats-toggle__btn" data-range="year">年</button>
           </div>
         </div>
         <div class="stats-summary">
@@ -117,6 +131,8 @@
         <div id="calendarGrid" class="calendar-grid"></div>
       </section>
     </main>
+
+    <button class="fab-button" id="fabAdd" type="button" aria-label="添加习惯">+</button>
   </div>
 
   <nav class="mobile-nav" aria-label="手机导航">
