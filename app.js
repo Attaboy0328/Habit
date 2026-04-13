@@ -55,11 +55,18 @@ const elements = {
   habitItemTemplate: document.querySelector("#habitItemTemplate"),
   presetCardTemplate: document.querySelector("#presetCardTemplate"),
   viewButtons: Array.from(document.querySelectorAll(".view-switch__btn")),
-  dashboard: document.querySelector("#dashboard")
+  statsButtons: Array.from(document.querySelectorAll(".stats-toggle__btn")),
+  checkinTotal: document.querySelector("#checkinTotal"),
+  habitDoneTotal: document.querySelector("#habitDoneTotal"),
+  averageRate: document.querySelector("#averageRate"),
+  dashboard: document.querySelector("#dashboard"),
+  mobileNavItems: Array.from(document.querySelectorAll(".mobile-nav__item")),
+  panels: Array.from(document.querySelectorAll(".panel"))
 };
 
 const state = loadState();
 const viewState = loadViewState();
+const statsState = loadStatsState();
 
 elements.habitForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -81,6 +88,18 @@ elements.habitForm.addEventListener("submit", (event) => {
 elements.viewButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setView(button.dataset.view);
+  });
+});
+
+elements.mobileNavItems.forEach((button) => {
+  button.addEventListener("click", () => {
+    setMobileScreen(button.dataset.screen);
+  });
+});
+
+elements.statsButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setStatsRange(button.dataset.range);
   });
 });
 
@@ -107,17 +126,37 @@ function loadState() {
 function loadViewState() {
   const raw = localStorage.getItem(VIEW_KEY);
   if (!raw) {
-    return { view: "mobile" };
+    return { view: "mobile", screen: "today" };
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!["auto", "desktop", "mobile"].includes(parsed.view)) {
-      return { view: "mobile" };
+      return { view: "mobile", screen: "today" };
+    }
+    return {
+      view: parsed.view || "mobile",
+      screen: ["today", "add", "library", "stats"].includes(parsed.screen) ? parsed.screen : "today"
+    };
+  } catch {
+    return { view: "mobile", screen: "today" };
+  }
+}
+
+function loadStatsState() {
+  const raw = localStorage.getItem("daily-check-stats-v1");
+  if (!raw) {
+    return { range: "week" };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!["week", "month"].includes(parsed.range)) {
+      return { range: "week" };
     }
     return parsed;
   } catch {
-    return { view: "mobile" };
+    return { range: "week" };
   }
 }
 
@@ -129,12 +168,19 @@ function saveViewState() {
   localStorage.setItem(VIEW_KEY, JSON.stringify(viewState));
 }
 
+function saveStatsState() {
+  localStorage.setItem("daily-check-stats-v1", JSON.stringify(statsState));
+}
+
 function render() {
   renderViewMode();
   renderPresetHabits();
   renderHeader();
   renderHabits();
   renderCalendar();
+  renderStatsSummary();
+  renderMobileNavigation();
+  renderPanels();
 }
 
 function renderHeader() {
@@ -165,6 +211,33 @@ function renderViewMode() {
 
   elements.modeHint.textContent = modeLabelMap[viewState.view] || modeLabelMap.auto;
   elements.dashboard.dataset.view = viewState.view;
+}
+
+function renderMobileNavigation() {
+  elements.mobileNavItems.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.screen === viewState.screen);
+  });
+}
+
+function renderPanels() {
+  const isMobile = viewState.view !== "desktop";
+  if (!isMobile) {
+    elements.panels.forEach((panel) => panel.classList.remove("is-hidden"));
+    elements.dashboard.dataset.screen = "";
+    return;
+  }
+
+  elements.dashboard.dataset.screen = viewState.screen;
+
+  elements.panels.forEach((panel) => {
+    const shouldShow =
+      (viewState.screen === "today" && panel.classList.contains("panel--today")) ||
+      (viewState.screen === "add" && panel.classList.contains("panel--form")) ||
+      (viewState.screen === "library" && panel.classList.contains("panel--library")) ||
+      (viewState.screen === "stats" && panel.classList.contains("panel--calendar"));
+
+    panel.classList.toggle("is-hidden", !shouldShow);
+  });
 }
 
 function renderPresetHabits() {
@@ -230,7 +303,7 @@ function renderHabits() {
 function renderCalendar() {
   elements.calendarGrid.innerHTML = "";
 
-  const days = getRecentDays(7);
+  const days = getRecentDays(statsState.range === "month" ? 30 : 7);
 
   days.forEach((day) => {
     const dayKey = formatDateKey(day);
@@ -259,6 +332,47 @@ function renderCalendar() {
 
     elements.calendarGrid.appendChild(dayItem);
   });
+}
+
+function renderStatsSummary() {
+  const periodDays = getRecentDays(statsState.range === "month" ? 30 : 7);
+  const todayKey = formatDateKey(new Date());
+  const periodKeys = periodDays.map(formatDateKey);
+
+  let checkinTotal = 0;
+  let habitDoneTotal = 0;
+  let completeDays = 0;
+
+  periodKeys.forEach((key) => {
+    const completedHabits = state.habits.filter((habit) => habit.history[key]).length;
+    checkinTotal += completedHabits;
+    if (completedHabits > 0) {
+      completeDays += 1;
+    }
+  });
+
+  state.habits.forEach((habit) => {
+    const wasDoneInPeriod = periodKeys.some((key) => habit.history[key]);
+    if (wasDoneInPeriod) {
+      habitDoneTotal += 1;
+    }
+  });
+
+  const averageRate = periodKeys.length && state.habits.length
+    ? Math.round((checkinTotal / (periodKeys.length * state.habits.length)) * 100)
+    : 0;
+
+  elements.checkinTotal.textContent = String(checkinTotal);
+  elements.habitDoneTotal.textContent = String(habitDoneTotal);
+  elements.averageRate.textContent = `${averageRate}%`;
+
+  elements.statsButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.range === statsState.range);
+  });
+
+  if (statsState.range === "month") {
+    elements.modeHint.textContent = `当前为${viewState.view === "desktop" ? "电脑" : "手机"}模式 · 查看本月统计`;
+  }
 }
 
 function toggleHabit(habitId, dateKey) {
@@ -364,7 +478,25 @@ function getProgressMessage(ratio, totalHabits) {
 
 function setView(view) {
   viewState.view = view;
+  if (view === "desktop") {
+    viewState.screen = "today";
+  }
   saveViewState();
+  render();
+}
+
+function setMobileScreen(screen) {
+  viewState.screen = screen;
+  if (viewState.view === "auto") {
+    viewState.view = "mobile";
+  }
+  saveViewState();
+  render();
+}
+
+function setStatsRange(range) {
+  statsState.range = range;
+  saveStatsState();
   render();
 }
 

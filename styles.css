@@ -36,7 +36,7 @@ input {
 .app-shell {
   width: min(1160px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 36px 0 48px;
+  padding: 36px 0 96px;
 }
 
 .hero {
@@ -188,6 +188,10 @@ input {
   padding: 26px;
 }
 
+.panel.is-hidden {
+  display: none;
+}
+
 .panel--preset {
   grid-column: 1 / -1;
 }
@@ -202,6 +206,57 @@ input {
   gap: 16px;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.stats-toggle {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: rgba(33, 28, 24, 0.06);
+}
+
+.stats-toggle__btn {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+.stats-toggle__btn.is-active {
+  background: white;
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(33, 28, 24, 0.08);
+}
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stats-summary__card {
+  border-radius: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(33, 28, 24, 0.06);
+  display: grid;
+  gap: 8px;
+}
+
+.stats-summary__label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stats-summary strong {
+  font-family: "Outfit", sans-serif;
+  font-size: 28px;
+  line-height: 1;
 }
 
 .badge,
@@ -450,6 +505,28 @@ input {
   grid-column: 1 / -1;
 }
 
+.dashboard[data-view="mobile"][data-screen="today"] .panel--today,
+.dashboard[data-view="mobile"][data-screen="add"] .panel--form,
+.dashboard[data-view="mobile"][data-screen="library"] .panel--library,
+.dashboard[data-view="mobile"][data-screen="stats"] .panel--calendar {
+  display: block;
+}
+
+.dashboard[data-view="mobile"][data-screen="today"] .panel--form,
+.dashboard[data-view="mobile"][data-screen="today"] .panel--library,
+.dashboard[data-view="mobile"][data-screen="today"] .panel--calendar,
+.dashboard[data-view="mobile"][data-screen="add"] .panel--today,
+.dashboard[data-view="mobile"][data-screen="add"] .panel--library,
+.dashboard[data-view="mobile"][data-screen="add"] .panel--calendar,
+.dashboard[data-view="mobile"][data-screen="library"] .panel--today,
+.dashboard[data-view="mobile"][data-screen="library"] .panel--form,
+.dashboard[data-view="mobile"][data-screen="library"] .panel--calendar,
+.dashboard[data-view="mobile"][data-screen="stats"] .panel--today,
+.dashboard[data-view="mobile"][data-screen="stats"] .panel--form,
+.dashboard[data-view="mobile"][data-screen="stats"] .panel--library {
+  display: none;
+}
+
 .dashboard[data-view="mobile"] .panel--preset {
   order: 1;
 }
@@ -491,6 +568,64 @@ input {
   padding: 16px;
 }
 
+.dashboard[data-view="mobile"] .stats-summary {
+  grid-template-columns: 1fr;
+}
+
+.dashboard[data-view="mobile"] .stats-toggle {
+  width: 100%;
+}
+
+.dashboard[data-view="mobile"] .stats-toggle__btn {
+  flex: 1;
+}
+
+.library-hint {
+  margin: -8px 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mobile-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: min(1160px, calc(100% - 20px));
+  display: none;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 10px;
+  border-radius: 22px;
+  background: rgba(255, 251, 246, 0.92);
+  border: 1px solid rgba(33, 28, 24, 0.08);
+  box-shadow: 0 18px 36px rgba(33, 28, 24, 0.16);
+  backdrop-filter: blur(16px);
+  z-index: 20;
+}
+
+.mobile-nav__item {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.mobile-nav__item.is-active {
+  background: rgba(232, 111, 45, 0.12);
+  color: var(--accent-strong);
+}
+
+.mobile-nav__icon {
+  font-size: 18px;
+}
+
 @media (max-width: 900px) {
   .hero,
   .dashboard {
@@ -504,6 +639,14 @@ input {
   .view-switch {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .stats-toggle {
+    width: 100%;
+  }
+
+  .stats-toggle__btn {
+    flex: 1;
   }
 
   .calendar-grid {
@@ -551,5 +694,9 @@ input {
     width: 46px;
     height: 46px;
     font-size: 22px;
+  }
+
+  .mobile-nav {
+    display: grid;
   }
 }
