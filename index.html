@@ -1,181 +1,176 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Habit</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
-    <header class="hero">
-      <div class="hero__copy">
-        <p class="eyebrow">Daily Momentum</p>
-        <h1>把坚持这件事，做得更有成就感。</h1>
-        <p class="hero__text">
-          支持电脑和手机两种查看模式，预设了常用习惯库，点一下就能快速加入。
-        </p>
-      </div>
-
-      <div class="hero__card">
-        <div class="hero__topline">
+    <main>
+      <section class="screen is-active" data-screen="home">
+        <header class="topbar">
           <div>
-            <p class="hero__date" id="todayLabel"></p>
-            <p class="hero__subtext" id="modeHint">当前为自动模式</p>
+            <p class="topbar__label" id="todayLabel">今天</p>
+            <h1>首页</h1>
           </div>
-          <div class="hero-actions">
-            <button type="button" class="hero-action-btn" id="modeToggle" aria-label="切换显示模式">⚙</button>
-            <div class="view-switch" id="viewSwitch" role="menu" aria-label="显示模式切换">
-              <button type="button" class="view-switch__btn is-active" data-view="auto">自动</button>
-              <button type="button" class="view-switch__btn" data-view="desktop">电脑</button>
-              <button type="button" class="view-switch__btn" data-view="mobile">手机</button>
+          <div class="progress-pill" id="todayProgress">0/0</div>
+        </header>
+
+        <section class="card card--progress">
+          <div class="ring" aria-hidden="true">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" class="ring__base"></circle>
+              <circle cx="50" cy="50" r="42" class="ring__value" id="progressRing"></circle>
+            </svg>
+            <strong id="progressRate">0%</strong>
+          </div>
+          <p class="card__hint" id="progressMessage">从一个最小动作开始。</p>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <h2>今日任务</h2>
+            <span id="streakSummary">连续 0 天</span>
+          </div>
+          <div id="habitList" class="habit-list"></div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <h2>快速添加习惯</h2>
+          </div>
+          <form id="habitForm" class="habit-form">
+            <input id="habitName" type="text" maxlength="24" placeholder="例如：晨跑 20 分钟" required>
+            <input id="habitGoal" type="text" maxlength="40" placeholder="例如：先完成，再完美">
+            <button class="btn-primary" type="submit">添加到今日任务</button>
+          </form>
+          <div class="preset-row" id="presetRow"></div>
+        </section>
+      </section>
+
+      <section class="screen" data-screen="timer">
+        <header class="topbar">
+          <div>
+            <p class="topbar__label">专注与计时</p>
+            <h1>计时</h1>
+          </div>
+        </header>
+
+        <section class="card">
+          <div class="card__head">
+            <h2>番茄钟</h2>
+            <div class="segmented">
+              <button class="segmented__btn is-active" data-pomo-minutes="25" type="button">25</button>
+              <button class="segmented__btn" data-pomo-minutes="50" type="button">50</button>
             </div>
           </div>
-        </div>
-        <div class="hero__progress">
-          <span id="completedCount">0</span>
-          <small>/ <span id="totalCount">0</span> 个习惯完成</small>
-        </div>
-        <div class="hero__bar">
-          <div class="hero__bar-fill" id="progressBar"></div>
-        </div>
-        <p class="hero__message" id="progressMessage"></p>
-      </div>
-    </header>
-
-    <main class="dashboard" id="dashboard">
-      <section class="panel panel--today">
-        <div class="panel__header">
-          <div>
-            <p class="section-kicker">Today</p>
-            <h2>今日任务</h2>
+          <div class="timer-main" id="pomoDisplay">25:00</div>
+          <div class="timer-actions">
+            <button id="pomoStart" class="btn-primary" type="button">开始</button>
+            <button id="pomoPause" class="btn-ghost" type="button">暂停</button>
+            <button id="pomoReset" class="btn-ghost" type="button">重置</button>
           </div>
-          <span class="badge" id="streakSummary">连续坚持 0 天</span>
-        </div>
-        <div id="habitList" class="habit-list"></div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <h2>正向计时</h2>
+          </div>
+          <div class="timer-main" id="stopwatchDisplay">00:00:00</div>
+          <div class="timer-actions">
+            <button id="swStart" class="btn-primary" type="button">开始</button>
+            <button id="swPause" class="btn-ghost" type="button">暂停</button>
+            <button id="swReset" class="btn-ghost" type="button">清零</button>
+          </div>
+        </section>
       </section>
 
-      <section class="panel panel--form">
-        <div class="panel__header">
+      <section class="screen" data-screen="stats">
+        <header class="topbar">
           <div>
-            <p class="section-kicker">New Habit</p>
-            <h2>添加自定义项目</h2>
+            <p class="topbar__label">复盘</p>
+            <h1>统计</h1>
           </div>
-        </div>
+          <div class="segmented" role="tablist" aria-label="统计周期">
+            <button class="segmented__btn is-active" data-range="week" type="button">周</button>
+            <button class="segmented__btn" data-range="month" type="button">月</button>
+            <button class="segmented__btn" data-range="year" type="button">年</button>
+          </div>
+        </header>
 
-        <form id="habitForm" class="habit-form">
-          <label class="input-group">
-            <span>习惯名称</span>
-            <input id="habitName" name="habitName" type="text" maxlength="24" placeholder="比如：晨跑 20 分钟" required>
-          </label>
+        <section class="stats-grid">
+          <article class="mini-card"><p>完成率</p><strong id="statRate">0%</strong></article>
+          <article class="mini-card"><p>打卡次数</p><strong id="statCheckins">0</strong></article>
+          <article class="mini-card"><p>连续天数</p><strong id="statStreak">0</strong></article>
+        </section>
 
-          <label class="input-group">
-            <span>激励文案</span>
-            <input id="habitGoal" name="habitGoal" type="text" maxlength="40" placeholder="比如：先完成，再完美">
-          </label>
-
-          <button type="submit" class="primary-button">创建今日打卡项</button>
-        </form>
+        <section class="card">
+          <div class="card__head">
+            <h2>热力图</h2>
+          </div>
+          <div id="heatmapGrid" class="heatmap-grid"></div>
+        </section>
       </section>
 
-      <section class="panel panel--library">
-        <div class="panel__header">
+      <section class="screen" data-screen="settings">
+        <header class="topbar">
           <div>
-            <p class="section-kicker">Library</p>
-            <h2>习惯库</h2>
+            <p class="topbar__label">个性化</p>
+            <h1>设置</h1>
           </div>
-        </div>
-        <div class="library-toolbar">
-          <input id="presetSearch" class="library-search" type="search" placeholder="搜索习惯，例如：跑步、阅读、喝水">
-          <div class="library-tabs" role="tablist" aria-label="习惯分类">
-            <button type="button" class="library-tab is-active" data-category="all">全部</button>
-            <button type="button" class="library-tab" data-category="health">健康</button>
-            <button type="button" class="library-tab" data-category="study">学习</button>
-            <button type="button" class="library-tab" data-category="life">生活</button>
-            <button type="button" class="library-tab" data-category="work">工作</button>
-          </div>
-        </div>
-        <div class="library-hint">点击任意习惯卡片即可加入今日打卡列表。</div>
-        <div id="presetGrid" class="preset-grid"></div>
-      </section>
+        </header>
 
-      <section class="panel panel--calendar">
-        <div class="panel__header">
-          <div>
-            <p class="section-kicker">History</p>
-            <h2>最近 7 天热力图</h2>
+        <section class="card">
+          <div class="card__head">
+            <h2>主题色</h2>
           </div>
-          <div class="stats-toggle" role="tablist" aria-label="统计周期切换">
-            <button type="button" class="stats-toggle__btn is-active" data-range="week">周</button>
-            <button type="button" class="stats-toggle__btn" data-range="month">月</button>
-            <button type="button" class="stats-toggle__btn" data-range="year">年</button>
+          <div class="theme-swatches" id="themeSwatches">
+            <button type="button" data-accent="#e86f2d" style="--sw:#e86f2d" class="swatch is-active"></button>
+            <button type="button" data-accent="#16a085" style="--sw:#16a085" class="swatch"></button>
+            <button type="button" data-accent="#2563eb" style="--sw:#2563eb" class="swatch"></button>
+            <button type="button" data-accent="#dc2626" style="--sw:#dc2626" class="swatch"></button>
           </div>
-        </div>
-        <div class="stats-summary">
-          <div class="stats-summary__card">
-            <span class="stats-summary__label">打卡数量</span>
-            <strong id="checkinTotal">0</strong>
+        </section>
+
+        <section class="card">
+          <div class="setting-row">
+            <div>
+              <h3>深色模式</h3>
+              <p>切换后整个界面立即生效</p>
+            </div>
+            <label class="switch">
+              <input id="darkModeToggle" type="checkbox">
+              <span></span>
+            </label>
           </div>
-          <div class="stats-summary__card">
-            <span class="stats-summary__label">完成习惯数</span>
-            <strong id="habitDoneTotal">0</strong>
-          </div>
-          <div class="stats-summary__card">
-            <span class="stats-summary__label">平均完成率</span>
-            <strong id="averageRate">0%</strong>
-          </div>
-        </div>
-        <div id="calendarGrid" class="calendar-grid"></div>
+        </section>
       </section>
     </main>
-
-    <button class="fab-button" id="fabAdd" type="button" aria-label="添加习惯">+</button>
   </div>
 
-  <nav class="mobile-nav" aria-label="手机导航">
-    <button type="button" class="mobile-nav__item is-active" data-screen="today">
-      <span class="mobile-nav__icon">🏠</span>
-      <span>今日</span>
-    </button>
-    <button type="button" class="mobile-nav__item" data-screen="add">
-      <span class="mobile-nav__icon">➕</span>
-      <span>添加</span>
-    </button>
-    <button type="button" class="mobile-nav__item" data-screen="library">
-      <span class="mobile-nav__icon">🗂️</span>
-      <span>习惯库</span>
-    </button>
-    <button type="button" class="mobile-nav__item" data-screen="stats">
-      <span class="mobile-nav__icon">📊</span>
-      <span>统计</span>
-    </button>
+  <nav class="mobile-nav" aria-label="主导航">
+    <button type="button" class="mobile-nav__item is-active" data-screen="home"><span>首页</span></button>
+    <button type="button" class="mobile-nav__item" data-screen="timer"><span>计时</span></button>
+    <button type="button" class="mobile-nav__item" data-screen="stats"><span>统计</span></button>
+    <button type="button" class="mobile-nav__item" data-screen="settings"><span>设置</span></button>
   </nav>
 
   <template id="habitItemTemplate">
-    <article class="habit-card">
-      <div class="habit-card__icon"></div>
-      <div class="habit-card__main">
-        <div class="habit-card__text">
-          <h3 class="habit-card__title"></h3>
-          <p class="habit-card__goal"></p>
-        </div>
-        <div class="habit-card__meta">
-          <span class="streak-pill"></span>
-          <button class="check-button" type="button"></button>
+    <article class="habit-item">
+      <div class="habit-item__left">
+        <span class="habit-item__icon"></span>
+        <div>
+          <h3 class="habit-item__title"></h3>
+          <p class="habit-item__goal"></p>
         </div>
       </div>
+      <button class="habit-item__check" type="button" aria-label="打卡"></button>
     </article>
-  </template>
-
-  <template id="presetCardTemplate">
-    <button class="preset-card" type="button">
-      <span class="preset-card__icon"></span>
-      <span class="preset-card__name"></span>
-      <span class="preset-card__meta"></span>
-    </button>
   </template>
 
   <script src="app.js"></script>
