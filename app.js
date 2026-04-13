@@ -2,15 +2,38 @@ const STORAGE_KEY = "daily-check-app-v2";
 const VIEW_KEY = "daily-check-view-v1";
 
 const presetHabits = [
+  { id: "vocab", name: "背单词", goal: "每天积累一点，长期很可观。", icon: "📝", aliases: ["背单词", "英语单词", "记单词"] },
+  { id: "read", name: "阅读 / 看书", goal: "每天读几页，慢慢就会有收获。", icon: "📖", aliases: ["阅读", "看书", "听书"] },
+  { id: "write", name: "练字 / 写作 / 日记", goal: "写一点、记一点，让思路更清晰。", icon: "✍️", aliases: ["练字", "写作", "日记"] },
+  { id: "exam", name: "刷题 / 备考", goal: "考研、考证、公考都适用。", icon: "🧠", aliases: ["刷题", "备考", "考研", "考证", "公考"] },
+  { id: "podcast", name: "听播客 / 听英语", goal: "通勤、家务时都能顺手做。", icon: "🎧", aliases: ["听播客", "听英语", "英语听力"] },
   { id: "study", name: "学习", goal: "今天也要稳稳地推进一点。", icon: "📚", aliases: ["学习", "读书", "自习"] },
-  { id: "run", name: "跑步", goal: "跑一跑，让状态跟上来。", icon: "🏃", aliases: ["跑步", "晨跑", "夜跑"] },
-  { id: "yoga", name: "瑜伽", goal: "舒展身体，放松呼吸。", icon: "🧘", aliases: ["瑜伽", "拉伸", "伸展"] },
+  { id: "water", name: "喝水打卡", goal: "简单、高频，最适合坚持。", icon: "💧", aliases: ["喝水", "喝水打卡"] },
+  { id: "stretch", name: "久坐提醒 / 定时拉伸", goal: "提醒自己起来活动一下。", icon: "🪑", aliases: ["久坐提醒", "定时拉伸", "拉伸"] },
+  { id: "walk", name: "定时起身走动", goal: "站起来走走，状态会更稳。", icon: "🚶", aliases: ["起身走动", "走动"] },
+  { id: "sleep", name: "早睡 / 不熬夜", goal: "把睡眠拉稳，第二天更轻松。", icon: "🌙", aliases: ["早睡", "不熬夜"] },
+  { id: "wake", name: "早起打卡", goal: "先把一天打开，节奏就起来了。", icon: "☀️", aliases: ["早起", "起床"] },
+  { id: "run", name: "运动 / 跑步 / 健身 / 跳绳", goal: "任选一种，动起来就算赢。", icon: "🏃", aliases: ["运动", "跑步", "健身", "跳绳"] },
+  { id: "eye", name: "护眼 / 远眺 / 眼保健操", goal: "让眼睛也有休息时间。", icon: "👀", aliases: ["护眼", "远眺", "眼保健操"] },
+  { id: "diet", name: "控糖 / 少零食 / 戒奶茶", goal: "少一点冲动，多一点稳定。", icon: "🥤", aliases: ["控糖", "少吃零食", "戒奶茶"] },
+  { id: "weight", name: "体重记录 / 饮食记录", goal: "记录本身就很有价值。", icon: "📊", aliases: ["体重记录", "饮食记录"] },
+  { id: "meditate", name: "冥想 / 深呼吸放松", goal: "给自己留一点安静时间。", icon: "🫧", aliases: ["冥想", "深呼吸", "放松"] },
   { id: "moxa", name: "艾灸", goal: "温养一下，给身体一点照顾。", icon: "🔥", aliases: ["艾灸", "温灸"] },
   { id: "bathroom", name: "排便", goal: "照顾好基础生理节律。", icon: "🚻", aliases: ["排便", "上厕所"] },
   { id: "nap", name: "午睡", goal: "补一小觉，下午更有劲。", icon: "😴", aliases: ["午睡", "小睡", "补觉"] },
   { id: "clean", name: "搞卫生", goal: "把环境整理好，心也会轻一点。", icon: "🧹", aliases: ["搞卫生", "打扫", "清洁"] },
-  { id: "switch", name: "玩 Switch", goal: "适度放松，给自己一点奖励。", icon: "🎮", aliases: ["玩Switch", "玩 Switch", "游戏"] },
-  { id: "words", name: "背单词", goal: "每天积累一点，长期很可观。", icon: "📝", aliases: ["背单词", "英语单词", "记单词"] }
+  { id: "room", name: "整理房间 / 桌面整洁", goal: "桌面整洁，脑子也更清爽。", icon: "🗂️", aliases: ["整理房间", "桌面整洁", "整理桌面"] },
+  { id: "money", name: "记账 / 不乱花钱", goal: "把钱花在真正重要的地方。", icon: "💰", aliases: ["记账", "不乱花钱"] },
+  { id: "review", name: "每日复盘 / 写总结", goal: "今天过得怎么样，记录一下。", icon: "🪞", aliases: ["每日复盘", "写总结", "复盘"] },
+  { id: "skin", name: "护肤 / 敷面膜", goal: "照顾好自己，也是正经事。", icon: "🧴", aliases: ["护肤", "敷面膜"] },
+  { id: "shower", name: "洗头 / 洗澡 / 泡脚", goal: "把疲惫洗掉，晚上更放松。", icon: "🛁", aliases: ["洗头", "洗澡", "泡脚"] },
+  { id: "phone", name: "戒手机 / 限时刷短视频", goal: "给注意力留一点空间。", icon: "📵", aliases: ["戒手机", "限时刷短视频"] },
+  { id: "toilet", name: "喝水 + 上厕所规律化", goal: "把基础节律照顾稳定。", icon: "⏱️", aliases: ["喝水上厕所", "规律化"] },
+  { id: "pomodoro", name: "专注计时 / 番茄钟", goal: "先专注 25 分钟，再看结果。", icon: "🍅", aliases: ["专注计时", "番茄钟"] },
+  { id: "tasks", name: "完成每日任务", goal: "把今天该做的事情逐个收掉。", icon: "✅", aliases: ["完成每日任务", "今日任务"] },
+  { id: "noDelay", name: "不拖延 / 今日事今日毕", goal: "今天的事，今天尽量清掉。", icon: "🚀", aliases: ["不拖延", "今日事今日毕"] },
+  { id: "email", name: "邮件 / 消息及时处理", goal: "重要消息别堆太久。", icon: "📨", aliases: ["邮件", "消息及时处理"] },
+  { id: "switch", name: "玩 Switch", goal: "适度放松，给自己一点奖励。", icon: "🎮", aliases: ["玩Switch", "玩 Switch", "游戏"] }
 ];
 
 const defaultHabits = presetHabits.map((item) => createHabitFromPreset(item));
