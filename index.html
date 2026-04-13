@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日打卡</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero__copy">
+        <p class="eyebrow">Daily Momentum</p>
+        <h1>把坚持这件事，做得更有成就感。</h1>
+        <p class="hero__text">
+          用轻量、明确、可视化的方式记录每天完成的习惯。
+          今天勾一下，明天更容易继续。
+        </p>
+      </div>
+      <div class="hero__card">
+        <p class="hero__date" id="todayLabel"></p>
+        <div class="hero__progress">
+          <span id="completedCount">0</span>
+          <small>/ <span id="totalCount">0</span> 个习惯完成</small>
+        </div>
+        <div class="hero__bar">
+          <div class="hero__bar-fill" id="progressBar"></div>
+        </div>
+        <p class="hero__message" id="progressMessage"></p>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="panel panel--form">
+        <div class="panel__header">
+          <div>
+            <p class="section-kicker">New Habit</p>
+            <h2>添加打卡目标</h2>
+          </div>
+        </div>
+
+        <form id="habitForm" class="habit-form">
+          <label class="input-group">
+            <span>习惯名称</span>
+            <input id="habitName" name="habitName" type="text" maxlength="24" placeholder="比如：晨跑 20 分钟" required>
+          </label>
+
+          <label class="input-group">
+            <span>激励文案</span>
+            <input id="habitGoal" name="habitGoal" type="text" maxlength="40" placeholder="比如：先完成，再完美">
+          </label>
+
+          <button type="submit" class="primary-button">创建今日打卡项</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel__header">
+          <div>
+            <p class="section-kicker">Today</p>
+            <h2>今日任务</h2>
+          </div>
+          <span class="badge" id="streakSummary">连续坚持 0 天</span>
+        </div>
+        <div id="habitList" class="habit-list"></div>
+      </section>
+
+      <section class="panel panel--calendar">
+        <div class="panel__header">
+          <div>
+            <p class="section-kicker">History</p>
+            <h2>最近 7 天热力图</h2>
+          </div>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="habitItemTemplate">
+    <article class="habit-card">
+      <div class="habit-card__main">
+        <div>
+          <h3 class="habit-card__title"></h3>
+          <p class="habit-card__goal"></p>
+        </div>
+        <div class="habit-card__meta">
+          <span class="streak-pill"></span>
+          <button class="check-button" type="button"></button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
