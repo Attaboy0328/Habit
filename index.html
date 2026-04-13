@@ -54,11 +54,15 @@
         <header class="topbar">
           <div>
             <p class="topbar__label">专注时钟</p>
-            <h1>番茄钟 + 正向计时</h1>
+            <h1>计时</h1>
+          </div>
+          <div class="segmented" role="tablist" aria-label="计时模式">
+            <button class="segmented__btn is-active" data-timer-mode="pomo" type="button">番茄钟</button>
+            <button class="segmented__btn" data-timer-mode="stopwatch" type="button">正向计时</button>
           </div>
         </header>
 
-        <section class="card timer-card">
+        <section class="card timer-card timer-panel is-active" data-timer-panel="pomo">
           <div class="card__head">
             <h2>番茄钟</h2>
             <div class="quick-minutes">
@@ -74,6 +78,15 @@
             <input id="pomoCustomMinutes" type="number" min="1" max="180" value="25">
             <button id="pomoApply" type="button" class="btn-ghost">应用</button>
           </div>
+          <div class="time-input-row time-input-row--ring">
+            <label>结束铃声</label>
+            <select id="ringtoneSelect" class="select">
+              <option value="none">静音</option>
+              <option value="soft">轻铃</option>
+              <option value="bright">清脆</option>
+              <option value="chime">钟声</option>
+            </select>
+          </div>
           <div class="timer-actions">
             <button id="pomoStart" class="btn-primary" type="button">开始</button>
             <button id="pomoPause" class="btn-ghost" type="button">暂停</button>
@@ -81,7 +94,7 @@
           </div>
         </section>
 
-        <section class="card timer-card">
+        <section class="card timer-card timer-panel" data-timer-panel="stopwatch">
           <div class="card__head">
             <h2>正向计时</h2>
           </div>
@@ -110,38 +123,15 @@
         <section class="stats-grid">
           <article class="mini-card"><p>完成率</p><strong id="statRate">0%</strong></article>
           <article class="mini-card"><p>打卡次数</p><strong id="statCheckins">0</strong></article>
+          <article class="mini-card"><p>活跃习惯数</p><strong id="statActiveHabits">0</strong></article>
           <article class="mini-card"><p>连续天数</p><strong id="statStreak">0</strong></article>
         </section>
 
         <section class="card">
           <div class="card__head card__head--stack">
             <div>
-              <h2>特定项目热力图</h2>
-              <p class="subtle">选择一个习惯查看单项热力分布</p>
-            </div>
-            <select id="habitHeatmapSelect" class="select"></select>
-          </div>
-          <div class="weekday-labels" id="habitWeekdayLabels"></div>
-          <div class="monthly-heatmap" id="habitMonthlyHeatmap"></div>
-        </section>
-
-        <section class="card">
-          <div class="card__head card__head--stack">
-            <div>
-              <h2>周热力图</h2>
-              <p class="subtle">按本周一到周日展示关键习惯</p>
-            </div>
-            <span class="week-range" id="weekRangeLabel"></span>
-          </div>
-          <div class="weekday-labels" id="weeklyHeatmapWeekdays"></div>
-          <div class="weekly-heatmap" id="weeklyHeatmap"></div>
-        </section>
-
-        <section class="card">
-          <div class="card__head card__head--stack">
-            <div>
               <h2 id="overallHeatmapTitle">周期热力图</h2>
-              <p class="subtle">周 / 月 / 年视图都显示月份与周几标记</p>
+              <p class="subtle" id="overallHeatmapHint">切换周/月/年查看不同时间段</p>
             </div>
           </div>
           <div class="weekday-labels" id="overallWeekdayLabels"></div>
@@ -161,19 +151,10 @@
           <div class="card__head card__head--stack">
             <div>
               <h2>主题色</h2>
-              <p class="subtle">含高级配色与粉色主题</p>
+              <p class="subtle">20种低饱和色，含樱花粉</p>
             </div>
           </div>
-          <div class="theme-swatches" id="themeSwatches">
-            <button type="button" data-accent="#e86f2d" style="--sw:#e86f2d" class="swatch is-active" title="活力橙"></button>
-            <button type="button" data-accent="#ff4d8d" style="--sw:#ff4d8d" class="swatch" title="樱花粉"></button>
-            <button type="button" data-accent="#16a085" style="--sw:#16a085" class="swatch" title="翡翠绿"></button>
-            <button type="button" data-accent="#2563eb" style="--sw:#2563eb" class="swatch" title="深海蓝"></button>
-            <button type="button" data-accent="#7c3aed" style="--sw:#7c3aed" class="swatch" title="皇家紫"></button>
-            <button type="button" data-accent="#c78b22" style="--sw:#c78b22" class="swatch" title="鎏金"></button>
-            <button type="button" data-accent="#0f766e" style="--sw:#0f766e" class="swatch" title="墨玉青"></button>
-            <button type="button" data-accent="#be123c" style="--sw:#be123c" class="swatch" title="酒红"></button>
-          </div>
+          <div class="theme-swatches" id="themeSwatches"></div>
         </section>
 
         <section class="card">
@@ -208,7 +189,10 @@
           <p class="habit-item__goal"></p>
         </div>
       </div>
-      <button class="habit-item__check" type="button" aria-label="打卡"></button>
+      <div class="habit-item__actions">
+        <button class="habit-item__delete" type="button" aria-label="删除习惯">删</button>
+        <button class="habit-item__check" type="button" aria-label="打卡"></button>
+      </div>
     </article>
   </template>
 

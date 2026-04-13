@@ -1,11 +1,18 @@
-﻿const STORAGE_KEY = "habit-mobile-v2";
-const SETTINGS_KEY = "habit-mobile-settings-v2";
+﻿const STORAGE_KEY = "habit-mobile-v3";
+const SETTINGS_KEY = "habit-mobile-settings-v3";
 
 const PRESET_CATEGORIES = [
   { id: "study", name: "学习" },
   { id: "health", name: "健康" },
   { id: "life", name: "生活" },
   { id: "work", name: "工作" }
+];
+
+const THEME_COLORS = [
+  "#d48462", "#c98f7b", "#b9906f", "#9a9f75", "#7fa38d",
+  "#6f9ea2", "#7394b7", "#8b88b6", "#9b84a9", "#ad809b",
+  "#d98da6", "#e7a7ba", "#e7b2b5", "#c7a9a0", "#a59b93",
+  "#8e9b9a", "#6f9090", "#6f8da5", "#8d8d8d", "#c4a26f"
 ];
 
 const PRESET_HABITS = [
@@ -77,18 +84,16 @@ const elements = {
   categoryTabs: document.querySelector("#categoryTabs"),
   presetGrid: document.querySelector("#presetGrid"),
   habitItemTemplate: document.querySelector("#habitItemTemplate"),
-  segmentedRangeBtns: Array.from(document.querySelectorAll("[data-range]")),
-  habitHeatmapSelect: document.querySelector("#habitHeatmapSelect"),
-  habitWeekdayLabels: document.querySelector("#habitWeekdayLabels"),
-  habitMonthlyHeatmap: document.querySelector("#habitMonthlyHeatmap"),
-  weekRangeLabel: document.querySelector("#weekRangeLabel"),
-  weeklyHeatmapWeekdays: document.querySelector("#weeklyHeatmapWeekdays"),
-  weeklyHeatmap: document.querySelector("#weeklyHeatmap"),
+  rangeBtns: Array.from(document.querySelectorAll("[data-range]")),
+  timerModeBtns: Array.from(document.querySelectorAll("[data-timer-mode]")),
+  timerPanels: Array.from(document.querySelectorAll(".timer-panel")),
   overallHeatmapTitle: document.querySelector("#overallHeatmapTitle"),
+  overallHeatmapHint: document.querySelector("#overallHeatmapHint"),
   overallWeekdayLabels: document.querySelector("#overallWeekdayLabels"),
   overallHeatmap: document.querySelector("#overallHeatmap"),
   statRate: document.querySelector("#statRate"),
   statCheckins: document.querySelector("#statCheckins"),
+  statActiveHabits: document.querySelector("#statActiveHabits"),
   statStreak: document.querySelector("#statStreak"),
   pomoDisplay: document.querySelector("#pomoDisplay"),
   pomoStart: document.querySelector("#pomoStart"),
@@ -96,12 +101,13 @@ const elements = {
   pomoReset: document.querySelector("#pomoReset"),
   pomoApply: document.querySelector("#pomoApply"),
   pomoCustomMinutes: document.querySelector("#pomoCustomMinutes"),
+  ringtoneSelect: document.querySelector("#ringtoneSelect"),
   pomoQuickBtns: Array.from(document.querySelectorAll("[data-pomo-minutes]")),
   stopwatchDisplay: document.querySelector("#stopwatchDisplay"),
   swStart: document.querySelector("#swStart"),
   swPause: document.querySelector("#swPause"),
   swReset: document.querySelector("#swReset"),
-  themeSwatches: Array.from(document.querySelectorAll(".swatch")),
+  themeSwatches: document.querySelector("#themeSwatches"),
   darkModeToggle: document.querySelector("#darkModeToggle")
 };
 
@@ -112,7 +118,7 @@ const uiState = {
   activeScreen: "home",
   activeCategory: "study",
   statsRange: "week",
-  selectedHabitId: "",
+  timerMode: "pomo",
   pomoMinutes: 25,
   pomoLeftSec: 25 * 60,
   pomoTimer: null,
@@ -126,7 +132,7 @@ bootstrap();
 function bootstrap() {
   bindEvents();
   initCategoryTabs();
-  initHabitSelect();
+  initThemeSwatches();
   applySettings();
   renderAll();
 }
@@ -136,28 +142,28 @@ function bindEvents() {
     button.addEventListener("click", () => switchScreen(button.dataset.screen || "home"));
   });
 
-  elements.segmentedRangeBtns.forEach((button) => {
+  elements.rangeBtns.forEach((button) => {
     button.addEventListener("click", () => {
       uiState.statsRange = button.dataset.range || "week";
       renderStats();
     });
   });
 
-  elements.habitHeatmapSelect.addEventListener("change", () => {
-    uiState.selectedHabitId = elements.habitHeatmapSelect.value;
-    renderHabitSpecificHeatmap();
+  elements.timerModeBtns.forEach((button) => {
+    button.addEventListener("click", () => {
+      uiState.timerMode = button.dataset.timerMode || "pomo";
+      renderTimerMode();
+    });
   });
 
   elements.pomoQuickBtns.forEach((button) => {
     button.addEventListener("click", () => {
-      const minutes = Number(button.dataset.pomoMinutes || 25);
-      applyPomodoroMinutes(minutes);
+      applyPomodoroMinutes(Number(button.dataset.pomoMinutes || 25));
     });
   });
 
   elements.pomoApply.addEventListener("click", () => {
-    const minutes = Number(elements.pomoCustomMinutes.value || 25);
-    applyPomodoroMinutes(minutes);
+    applyPomodoroMinutes(Number(elements.pomoCustomMinutes.value || 25));
   });
 
   elements.pomoStart.addEventListener("click", startPomodoro);
@@ -176,15 +182,6 @@ function bindEvents() {
     renderStopwatch();
   });
 
-  elements.themeSwatches.forEach((button) => {
-    button.addEventListener("click", () => {
-      settings.accent = button.dataset.accent || settings.accent;
-      saveSettings();
-      applySettings();
-      renderAll();
-    });
-  });
-
   elements.darkModeToggle.addEventListener("change", () => {
     settings.darkMode = elements.darkModeToggle.checked;
     saveSettings();
@@ -194,13 +191,10 @@ function bindEvents() {
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return { habits: [] };
-  }
+  if (!raw) return { habits: [] };
   try {
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed.habits)) throw new Error("state error");
-    return parsed;
+    return Array.isArray(parsed.habits) ? parsed : { habits: [] };
   } catch {
     return { habits: [] };
   }
@@ -208,15 +202,16 @@ function loadState() {
 
 function loadSettings() {
   const raw = localStorage.getItem(SETTINGS_KEY);
-  if (!raw) return { accent: "#e86f2d", darkMode: false };
+  if (!raw) return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft" };
   try {
     const parsed = JSON.parse(raw);
     return {
-      accent: parsed.accent || "#e86f2d",
-      darkMode: Boolean(parsed.darkMode)
+      accent: parsed.accent || THEME_COLORS[0],
+      darkMode: Boolean(parsed.darkMode),
+      ringtone: parsed.ringtone || "soft"
     };
   } catch {
-    return { accent: "#e86f2d", darkMode: false };
+    return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft" };
   }
 }
 
@@ -225,6 +220,7 @@ function saveState() {
 }
 
 function saveSettings() {
+  settings.ringtone = elements.ringtoneSelect.value;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
@@ -243,28 +239,23 @@ function initCategoryTabs() {
   });
 }
 
-function initHabitSelect() {
-  elements.habitHeatmapSelect.innerHTML = "";
-  if (state.habits.length === 0) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "暂无习惯";
-    elements.habitHeatmapSelect.appendChild(opt);
-    uiState.selectedHabitId = "";
-    return;
-  }
-
-  state.habits.forEach((habit) => {
-    const opt = document.createElement("option");
-    opt.value = habit.id;
-    opt.textContent = `${habit.icon} ${habit.name}`;
-    elements.habitHeatmapSelect.appendChild(opt);
+function initThemeSwatches() {
+  elements.themeSwatches.innerHTML = "";
+  THEME_COLORS.forEach((color) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "swatch";
+    btn.dataset.accent = color;
+    btn.style.setProperty("--sw", color);
+    if (color === settings.accent) btn.classList.add("is-active");
+    btn.addEventListener("click", () => {
+      settings.accent = color;
+      saveSettings();
+      applySettings();
+      renderAll();
+    });
+    elements.themeSwatches.appendChild(btn);
   });
-
-  if (!state.habits.some((h) => h.id === uiState.selectedHabitId)) {
-    uiState.selectedHabitId = state.habits[0].id;
-  }
-  elements.habitHeatmapSelect.value = uiState.selectedHabitId;
 }
 
 function renderAll() {
@@ -274,6 +265,7 @@ function renderAll() {
   renderStats();
   renderPomodoro();
   renderStopwatch();
+  renderTimerMode();
 }
 
 function renderNav() {
@@ -303,7 +295,7 @@ function renderHome() {
     weekday: "short"
   }).format(today);
 
-  elements.welcomeSub.textContent = total === 0 ? "先从下方选择习惯开始" : "继续保持，今天也会很稳";
+  elements.welcomeSub.textContent = total === 0 ? "今日任务为空，可从下方添加" : "继续保持，今天也会很稳";
   elements.todayProgress.textContent = `${doneCount}/${total}`;
   elements.progressRate.textContent = `${rate}%`;
   elements.progressRing.style.strokeDashoffset = `${264 - (264 * rate) / 100}`;
@@ -316,7 +308,6 @@ function renderHome() {
     empty.className = "empty-box";
     empty.textContent = "今日任务为空，请从下方快速添加习惯。";
     elements.habitList.appendChild(empty);
-    initHabitSelect();
     return;
   }
 
@@ -326,6 +317,7 @@ function renderHome() {
     const icon = node.querySelector(".habit-item__icon");
     const title = node.querySelector(".habit-item__title");
     const goal = node.querySelector(".habit-item__goal");
+    const del = node.querySelector(".habit-item__delete");
     const check = node.querySelector(".habit-item__check");
     const isDone = Boolean(habit.history[todayKey]);
 
@@ -335,20 +327,26 @@ function renderHome() {
     item.classList.toggle("is-done", isDone);
     check.classList.toggle("is-done", isDone);
 
+    del.addEventListener("click", () => {
+      state.habits = state.habits.filter((h) => h.id !== habit.id);
+      saveState();
+      renderAll();
+    });
+
     check.addEventListener("click", () => {
       if (isDone) {
         delete habit.history[todayKey];
       } else {
         habit.history[todayKey] = true;
       }
+      item.classList.add("pulse");
+      setTimeout(() => item.classList.remove("pulse"), 240);
       saveState();
       renderAll();
     });
 
     elements.habitList.appendChild(node);
   });
-
-  initHabitSelect();
 }
 
 function renderPresetGrid() {
@@ -383,21 +381,22 @@ function addPresetHabit(preset) {
 }
 
 function renderStats() {
-  renderStatsCards();
-  renderHabitSpecificHeatmap();
-  renderWeeklyHeatmap();
-  renderOverallHeatmap();
-}
-
-function renderStatsCards() {
   const days = uiState.statsRange === "week" ? 7 : uiState.statsRange === "month" ? 30 : 365;
-  const periodKeys = getRecentDays(days).map(formatDateKey);
+  const periodDates = getRecentDays(days);
+  const periodKeys = periodDates.map(formatDateKey);
 
   let checkins = 0;
+  let activeHabits = 0;
+
   state.habits.forEach((habit) => {
+    let hasAny = false;
     periodKeys.forEach((key) => {
-      if (habit.history[key]) checkins += 1;
+      if (habit.history[key]) {
+        checkins += 1;
+        hasAny = true;
+      }
     });
+    if (hasAny) activeHabits += 1;
   });
 
   const totalSlots = Math.max(1, state.habits.length * periodKeys.length);
@@ -405,85 +404,25 @@ function renderStatsCards() {
 
   elements.statRate.textContent = `${rate}%`;
   elements.statCheckins.textContent = String(checkins);
+  elements.statActiveHabits.textContent = String(activeHabits);
   elements.statStreak.textContent = String(getMaxStreak());
 
-  elements.segmentedRangeBtns.forEach((button) => {
+  elements.rangeBtns.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.range === uiState.statsRange);
   });
-}
 
-function renderHabitSpecificHeatmap() {
-  elements.habitWeekdayLabels.innerHTML = weekdayLabels().map((d) => `<span>${d}</span>`).join("");
-  elements.habitMonthlyHeatmap.innerHTML = "";
-
-  const habit = state.habits.find((item) => item.id === uiState.selectedHabitId);
-  if (!habit) {
-    elements.habitMonthlyHeatmap.innerHTML = '<div class="empty-box">先添加习惯后再查看单项热力图。</div>';
-    return;
+  if (uiState.statsRange === "week") {
+    elements.overallHeatmapTitle.textContent = "周热力图";
+    elements.overallHeatmapHint.textContent = "展示本周每天完成情况";
+  } else if (uiState.statsRange === "month") {
+    elements.overallHeatmapTitle.textContent = "月热力图";
+    elements.overallHeatmapHint.textContent = "展示近30天完成情况";
+  } else {
+    elements.overallHeatmapTitle.textContent = "年热力图";
+    elements.overallHeatmapHint.textContent = "按月份查看全年热力分布";
   }
 
-  for (let month = 0; month < 12; month += 1) {
-    const block = document.createElement("article");
-    block.className = "month-block";
-    const title = document.createElement("h4");
-    title.textContent = `${month + 1}月`;
-    const grid = document.createElement("div");
-    grid.className = "month-grid";
-
-    const daysInMonth = new Date(new Date().getFullYear(), month + 1, 0).getDate();
-    for (let day = 1; day <= 42; day += 1) {
-      const cell = document.createElement("div");
-      cell.className = "heat-cell";
-      if (day <= daysInMonth) {
-        const key = formatDateKey(new Date(new Date().getFullYear(), month, day));
-        if (habit.history[key]) {
-          cell.classList.add("lv3");
-          cell.textContent = "1";
-        }
-      }
-      grid.appendChild(cell);
-    }
-
-    block.appendChild(title);
-    block.appendChild(grid);
-    elements.habitMonthlyHeatmap.appendChild(block);
-  }
-}
-
-function renderWeeklyHeatmap() {
-  elements.weeklyHeatmapWeekdays.innerHTML = weekdayLabels().map((d) => `<span>${d}</span>`).join("");
-  elements.weeklyHeatmap.innerHTML = "";
-
-  const weekDays = getCurrentWeekDays();
-  const weekKeys = weekDays.map(formatDateKey);
-  elements.weekRangeLabel.textContent = `${formatShortMonthDay(weekDays[0])} - ${formatShortMonthDay(weekDays[6])}`;
-
-  const topHabits = state.habits.slice(0, 6);
-  if (topHabits.length === 0) {
-    elements.weeklyHeatmap.innerHTML = '<div class="empty-box">暂无习惯可展示周热力图。</div>';
-    return;
-  }
-
-  topHabits.forEach((habit) => {
-    const row = document.createElement("div");
-    row.className = "week-row";
-    const left = document.createElement("div");
-    left.className = "week-row__label";
-    left.textContent = `${habit.icon} ${habit.name}`;
-    const cells = document.createElement("div");
-    cells.className = "week-row__cells";
-
-    weekKeys.forEach((key) => {
-      const cell = document.createElement("span");
-      cell.className = `week-cell ${habit.history[key] ? "lv3" : ""}`;
-      cell.textContent = habit.history[key] ? "1" : "-";
-      cells.appendChild(cell);
-    });
-
-    row.appendChild(left);
-    row.appendChild(cells);
-    elements.weeklyHeatmap.appendChild(row);
-  });
+  renderOverallHeatmap();
 }
 
 function renderOverallHeatmap() {
@@ -491,28 +430,24 @@ function renderOverallHeatmap() {
   elements.overallHeatmap.innerHTML = "";
 
   if (uiState.statsRange === "week") {
-    elements.overallHeatmapTitle.textContent = "周热力图";
-    renderRangeHeatBlocks(getCurrentWeekDays(), "本周", elements.overallHeatmap);
+    renderHeatRangeBlock(getCurrentWeekDays(), "本周", false);
     return;
   }
 
   if (uiState.statsRange === "month") {
-    elements.overallHeatmapTitle.textContent = "月热力图";
-    const monthDays = getRecentDays(30);
-    renderRangeHeatBlocks(monthDays, "近30天", elements.overallHeatmap);
+    renderHeatRangeBlock(getRecentDays(30), "近30天", false);
     return;
   }
 
-  elements.overallHeatmapTitle.textContent = "年热力图";
   for (let month = 0; month < 12; month += 1) {
-    const start = new Date(new Date().getFullYear(), month, 1);
-    const daysInMonth = new Date(new Date().getFullYear(), month + 1, 0).getDate();
-    const days = Array.from({ length: daysInMonth }, (_, i) => new Date(start.getFullYear(), start.getMonth(), i + 1));
-    renderRangeHeatBlocks(days, `${month + 1}月`, elements.overallHeatmap, true);
+    const year = new Date().getFullYear();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1));
+    renderHeatRangeBlock(days, `${month + 1}月`, true);
   }
 }
 
-function renderRangeHeatBlocks(days, label, root, compact = false) {
+function renderHeatRangeBlock(days, label, compact) {
   const block = document.createElement("article");
   block.className = "range-block";
   const heading = document.createElement("h4");
@@ -539,7 +474,16 @@ function renderRangeHeatBlocks(days, label, root, compact = false) {
 
   block.appendChild(heading);
   block.appendChild(grid);
-  root.appendChild(block);
+  elements.overallHeatmap.appendChild(block);
+}
+
+function renderTimerMode() {
+  elements.timerModeBtns.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.timerMode === uiState.timerMode);
+  });
+  elements.timerPanels.forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.timerPanel === uiState.timerMode);
+  });
 }
 
 function applyPomodoroMinutes(minutes) {
@@ -559,6 +503,7 @@ function startPomodoro() {
     if (uiState.pomoLeftSec <= 0) {
       uiState.pomoLeftSec = 0;
       pausePomodoro();
+      playRingtone(settings.ringtone);
     }
     renderPomodoro();
   }, 1000);
@@ -574,6 +519,26 @@ function renderPomodoro() {
   const min = Math.floor(uiState.pomoLeftSec / 60);
   const sec = uiState.pomoLeftSec % 60;
   elements.pomoDisplay.textContent = `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+function playRingtone(type) {
+  if (type === "none") return;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const sequence = type === "soft" ? [660, 550] : type === "bright" ? [880, 988, 880] : [523, 659, 784];
+  sequence.forEach((freq, index) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = freq;
+    osc.type = "sine";
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const start = ctx.currentTime + index * 0.18;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.08, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+    osc.start(start);
+    osc.stop(start + 0.17);
+  });
 }
 
 function startStopwatch() {
@@ -603,7 +568,8 @@ function applySettings() {
   document.documentElement.style.setProperty("--accent-strong", settings.accent);
   document.documentElement.dataset.theme = settings.darkMode ? "dark" : "light";
   elements.darkModeToggle.checked = settings.darkMode;
-  elements.themeSwatches.forEach((button) => {
+  elements.ringtoneSelect.value = settings.ringtone || "soft";
+  elements.themeSwatches.querySelectorAll(".swatch").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.accent === settings.accent);
   });
 }
@@ -653,10 +619,6 @@ function formatDateKey(date) {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
-}
-
-function formatShortMonthDay(date) {
-  return `${date.getMonth() + 1}.${date.getDate()}`;
 }
 
 function weekdayLabels() {
