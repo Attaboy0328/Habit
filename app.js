@@ -222,7 +222,10 @@ function renderMobileNavigation() {
 function renderPanels() {
   const isMobile = viewState.view !== "desktop";
   if (!isMobile) {
-    elements.panels.forEach((panel) => panel.classList.remove("is-hidden"));
+    elements.panels.forEach((panel) => {
+      panel.classList.remove("is-hidden");
+      panel.classList.remove("is-mobile-active");
+    });
     elements.dashboard.dataset.screen = "";
     return;
   }
@@ -237,6 +240,7 @@ function renderPanels() {
       (viewState.screen === "stats" && panel.classList.contains("panel--calendar"));
 
     panel.classList.toggle("is-hidden", !shouldShow);
+    panel.classList.toggle("is-mobile-active", shouldShow);
   });
 }
 
