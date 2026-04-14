@@ -93,9 +93,13 @@ const elements = {
   timerPanels: Array.from(document.querySelectorAll(".timer-panel")),
   overallHeatmapTitle: document.querySelector("#overallHeatmapTitle"),
   overallHeatmapHint: document.querySelector("#overallHeatmapHint"),
+  focusHabitTitle: document.querySelector("#focusHabitTitle"),
+  focusHabitMeta: document.querySelector("#focusHabitMeta"),
+  weekRangeLabel: document.querySelector("#weekRangeLabel"),
+  weekStrip: document.querySelector("#weekStrip"),
   overallHeatmap: document.querySelector("#overallHeatmap"),
-  habitCompare: document.querySelector("#habitCompare"),
-  habitCountList: document.querySelector("#habitCountList"),
+  statDaysDone: document.querySelector("#statDaysDone"),
+  statRate2: document.querySelector("#statRate2"),
   statRate: document.querySelector("#statRate"),
   statCheckins: document.querySelector("#statCheckins"),
   statActiveHabits: document.querySelector("#statActiveHabits"),
@@ -126,9 +130,12 @@ const elements = {
   webdavTestBtn: document.querySelector("#webdavTestBtn"),
   webdavUploadBtn: document.querySelector("#webdavUploadBtn"),
   webdavDownloadBtn: document.querySelector("#webdavDownloadBtn"),
+  silentSyncToggle: document.querySelector("#silentSyncToggle"),
+  syncStatusText: document.querySelector("#syncStatusText"),
   downloadBackupBtn: document.querySelector("#downloadBackupBtn"),
   importBackupInput: document.querySelector("#importBackupInput"),
   registerBioBtn: document.querySelector("#registerBioBtn"),
+  removeBioBtn: document.querySelector("#removeBioBtn"),
   unlockNowBtn: document.querySelector("#unlockNowBtn"),
   lockNowBtn: document.querySelector("#lockNowBtn"),
   privacyLock: document.querySelector("#privacyLock"),
@@ -155,7 +162,8 @@ const uiState = {
   swTimer: null,
   swStartedAt: 0,
   laps: [],
-  reminderTick: null
+  reminderTick: null,
+  silentSyncTick: null
 };
 
 bootstrap();
@@ -167,6 +175,7 @@ function bootstrap() {
   applySettings();
   renderAll();
   startReminderTicker();
+  startSilentSyncTicker();
   if (settings.privacyEnabled) showPrivacyLock();
 }
 
@@ -243,7 +252,15 @@ function bindEvents() {
   if (elements.webdavUrl) elements.webdavUrl.addEventListener("change", saveWebdavConfig);
   if (elements.webdavUser) elements.webdavUser.addEventListener("change", saveWebdavConfig);
   if (elements.webdavPass) elements.webdavPass.addEventListener("change", saveWebdavConfig);
+  if (elements.silentSyncToggle) {
+    elements.silentSyncToggle.addEventListener("change", () => {
+      saveWebdavConfig();
+      startSilentSyncTicker();
+      updateSyncStatus();
+    });
+  }
   if (elements.registerBioBtn) elements.registerBioBtn.addEventListener("click", registerBiometric);
+  if (elements.removeBioBtn) elements.removeBioBtn.addEventListener("click", removeBiometric);
   if (elements.unlockNowBtn) elements.unlockNowBtn.addEventListener("click", biometricUnlock);
   if (elements.lockNowBtn) elements.lockNowBtn.addEventListener("click", showPrivacyLock);
   if (elements.privacyUnlockBtn) elements.privacyUnlockBtn.addEventListener("click", biometricUnlock);
@@ -290,32 +307,42 @@ function loadReminders() {
 
 function loadWebdavConfig() {
   const raw = localStorage.getItem(WEBDAV_KEY);
-  if (!raw) return { url: "", user: "", pass: "" };
+  if (!raw) return { url: "", user: "", pass: "", silentSync: false, lastSync: "" };
   try {
     const parsed = JSON.parse(raw);
-    return { url: parsed.url || "", user: parsed.user || "", pass: parsed.pass || "" };
+    return {
+      url: parsed.url || "",
+      user: parsed.user || "",
+      pass: parsed.pass || "",
+      silentSync: Boolean(parsed.silentSync),
+      lastSync: parsed.lastSync || ""
+    };
   } catch {
-    return { url: "", user: "", pass: "" };
+    return { url: "", user: "", pass: "", silentSync: false, lastSync: "" };
   }
 }
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (webdavConfig.silentSync) silentSyncUpload();
 }
 
 function saveSettings() {
   settings.ringtone = elements.ringtoneSelect.value;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  if (webdavConfig.silentSync) silentSyncUpload();
 }
 
 function saveReminders() {
   localStorage.setItem(REMINDER_KEY, JSON.stringify(reminderState));
+  if (webdavConfig.silentSync) silentSyncUpload();
 }
 
 function saveWebdavConfig() {
   webdavConfig.url = (elements.webdavUrl?.value || "").trim();
   webdavConfig.user = (elements.webdavUser?.value || "").trim();
   webdavConfig.pass = elements.webdavPass?.value || "";
+  webdavConfig.silentSync = Boolean(elements.silentSyncToggle?.checked ?? webdavConfig.silentSync);
   localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
 }
 
@@ -419,10 +446,6 @@ function renderHome() {
     const remind = node.querySelector(".habit-item__remind");
     const del = node.querySelector(".habit-item__delete");
     const check = node.querySelector(".habit-item__check");
-    const panel = node.querySelector(".habit-item__reminder-panel");
-    const timeInput = node.querySelector(".habit-reminder-time");
-    const remindToggle = node.querySelector(".habit-reminder-toggle");
-    const permissionBtn = node.querySelector(".habit-reminder-permission");
     const isDone = Boolean(habit.history[todayKey]);
     const remindConf = reminderState[habit.id] || { enabled: false, time: "09:00", lastSent: "" };
 
@@ -432,8 +455,6 @@ function renderHome() {
     item.classList.toggle("is-done", isDone);
     check.classList.toggle("is-done", isDone);
     remind.classList.toggle("is-active", remindConf.enabled);
-    timeInput.value = remindConf.time || "09:00";
-    remindToggle.checked = Boolean(remindConf.enabled);
 
     edit.addEventListener("click", () => {
       const nextGoal = (window.prompt(`修改「${habit.name}」目标`, habit.goal) || "").trim();
@@ -444,21 +465,21 @@ function renderHome() {
     });
 
     remind.addEventListener("click", () => {
-      panel.classList.toggle("is-hidden");
-    });
-
-    timeInput.addEventListener("change", () => {
-      reminderState[habit.id] = { ...remindConf, enabled: remindToggle.checked, time: timeInput.value, lastSent: remindConf.lastSent || "" };
+      requestNotificationPermission();
+      const enabled = window.confirm(`是否开启「${habit.name}」每日提醒？\n当前：${remindConf.enabled ? `已开启 ${remindConf.time}` : "未开启"}`);
+      if (!enabled) {
+        reminderState[habit.id] = { ...remindConf, enabled: false };
+      } else {
+        const nextTime = (window.prompt("输入提醒时间（HH:MM）", remindConf.time || "09:00") || "").trim();
+        if (!/^\d{2}:\d{2}$/.test(nextTime)) {
+          alert("时间格式无效，请使用 HH:MM（如 09:30）");
+          return;
+        }
+        reminderState[habit.id] = { ...remindConf, enabled: true, time: nextTime };
+      }
       saveReminders();
+      renderHome();
     });
-
-    remindToggle.addEventListener("change", () => {
-      reminderState[habit.id] = { ...remindConf, enabled: remindToggle.checked, time: timeInput.value, lastSent: remindConf.lastSent || "" };
-      remind.classList.toggle("is-active", remindToggle.checked);
-      saveReminders();
-    });
-
-    permissionBtn.addEventListener("click", requestNotificationPermission);
 
     del.addEventListener("click", () => {
       state.habits = state.habits.filter((h) => h.id !== habit.id);
@@ -550,6 +571,7 @@ function addPresetHabit(preset) {
 }
 
 function renderStats() {
+  const focusHabit = state.habits[0] || null;
   const periodDates =
     uiState.statsRange === "week"
       ? getCurrentWeekDays()
@@ -579,6 +601,10 @@ function renderStats() {
   elements.statCheckins.textContent = String(checkins);
   elements.statActiveHabits.textContent = String(activeHabits);
   elements.statStreak.textContent = String(getMaxStreak());
+  elements.statDaysDone.textContent = `🏆 ${countDoneDays(focusHabit)} 天`;
+  elements.statRate2.textContent = `🔥 ${rate}%`;
+  elements.focusHabitTitle.textContent = focusHabit ? `${focusHabit.icon} ${focusHabit.name}` : "习惯统计";
+  elements.focusHabitMeta.textContent = focusHabit ? focusHabit.goal : "添加习惯后可查看";
 
   elements.rangeBtns.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.range === uiState.statsRange);
@@ -595,54 +621,49 @@ function renderStats() {
     elements.overallHeatmapHint.textContent = "按月份查看当年完成分布";
   }
 
-  renderOverallHeatmap();
-  renderHabitCompare(periodKeys);
-  renderHabitCounts(periodKeys);
+  renderWeekStrip(focusHabit);
+  renderOverallHeatmap(focusHabit);
 }
 
-function renderHabitCompare(periodKeys) {
-  elements.habitCompare.innerHTML = "";
-  if (state.habits.length < 2) {
-    elements.habitCompare.innerHTML = '<div class="empty-box">至少添加两个习惯后可查看重合度。</div>';
-    return;
-  }
-
-  let bestPair = null;
-  for (let i = 0; i < state.habits.length; i += 1) {
-    for (let j = i + 1; j < state.habits.length; j += 1) {
-      const a = state.habits[i];
-      const b = state.habits[j];
-      const overlap = periodKeys.reduce((sum, key) => sum + (a.history[key] && b.history[key] ? 1 : 0), 0);
-      if (!bestPair || overlap > bestPair.overlap) {
-        bestPair = { a, b, overlap };
-      }
+function renderWeekStrip(focusHabit) {
+  const week = getCurrentWeekDays();
+  elements.weekRangeLabel.textContent = `${formatShort(week[0])}-${formatShort(week[6])}`;
+  elements.weekStrip.innerHTML = "";
+  week.forEach((day) => {
+    const key = formatDateKey(day);
+    const done = focusHabit ? Boolean(focusHabit.history[key]) : false;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `week-strip__day${done ? " is-done" : ""}`;
+    btn.innerHTML = `<span>周${weekdayLabels()[((day.getDay() + 6) % 7)]}</span><strong>${day.getMonth() + 1}/${day.getDate()}</strong><em>${done ? "✓" : "·"}</em>`;
+    if (focusHabit) {
+      btn.addEventListener("click", () => {
+        if (focusHabit.history[key]) delete focusHabit.history[key];
+        else focusHabit.history[key] = true;
+        saveState();
+        renderStats();
+        renderHome();
+      });
+    } else {
+      btn.disabled = true;
     }
-  }
-
-  if (!bestPair) return;
-  const ratio = Math.round((bestPair.overlap / Math.max(1, periodKeys.length)) * 100);
-  elements.habitCompare.innerHTML = `
-    <article class="compare-card">
-      <p>${bestPair.a.icon} ${bestPair.a.name} × ${bestPair.b.icon} ${bestPair.b.name}</p>
-      <strong>${bestPair.overlap} 天重合</strong>
-      <span>重合率 ${ratio}%</span>
-    </article>
-  `;
+    elements.weekStrip.appendChild(btn);
+  });
 }
 
-function renderOverallHeatmap() {
+function renderOverallHeatmap(focusHabit) {
   elements.overallHeatmap.innerHTML = "";
 
   if (uiState.statsRange === "week") {
     const week = getCurrentWeekDays();
-    renderHeatRangeBlock(week, `本周 ${formatShort(week[0])}-${formatShort(week[6])}`, false);
+    renderHeatRangeBlock(week, `本周 ${formatShort(week[0])}-${formatShort(week[6])}`, false, focusHabit);
     return;
   }
 
   if (uiState.statsRange === "month") {
     const monthDays = getCurrentMonthDays();
     const d = new Date();
-    renderHeatRangeBlock(monthDays, `${d.getMonth() + 1}月 ${d.getFullYear()}`, false);
+    renderHeatRangeBlock(monthDays, `${d.getMonth() + 1}月 ${d.getFullYear()}`, false, focusHabit);
     return;
   }
 
@@ -650,11 +671,11 @@ function renderOverallHeatmap() {
     const year = new Date().getFullYear();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const days = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1));
-    renderHeatRangeBlock(days, `${month + 1}月`, true);
+    renderHeatRangeBlock(days, `${month + 1}月`, true, focusHabit);
   }
 }
 
-function renderHeatRangeBlock(days, label, compact) {
+function renderHeatRangeBlock(days, label, compact, focusHabit) {
   const block = document.createElement("article");
   block.className = "range-block";
   const heading = document.createElement("h4");
@@ -676,7 +697,7 @@ function renderHeatRangeBlock(days, label, compact) {
     if (dayIndex >= 0 && dayIndex < days.length) {
       const date = days[dayIndex];
       const key = formatDateKey(date);
-      const count = state.habits.filter((habit) => habit.history[key]).length;
+      const count = focusHabit ? (focusHabit.history[key] ? 1 : 0) : state.habits.filter((habit) => habit.history[key]).length;
       if (count > 0 && count <= 2) cell.classList.add("lv1");
       if (count > 2 && count <= 4) cell.classList.add("lv2");
       if (count > 4) cell.classList.add("lv3");
@@ -692,28 +713,6 @@ function renderHeatRangeBlock(days, label, compact) {
   block.appendChild(weekday);
   block.appendChild(grid);
   elements.overallHeatmap.appendChild(block);
-}
-
-function renderHabitCounts(periodKeys) {
-  elements.habitCountList.innerHTML = "";
-  if (!state.habits.length) {
-    elements.habitCountList.innerHTML = '<div class="empty-box">暂无习惯统计。</div>';
-    return;
-  }
-
-  const rows = state.habits
-    .map((habit) => {
-      const count = periodKeys.reduce((sum, key) => sum + (habit.history[key] ? 1 : 0), 0);
-      return { habit, count };
-    })
-    .sort((a, b) => b.count - a.count);
-
-  rows.forEach(({ habit, count }) => {
-    const item = document.createElement("div");
-    item.className = "habit-count-item";
-    item.innerHTML = `<span class="habit-count-item__name">${habit.icon} ${habit.name}</span><strong>${count}</strong>`;
-    elements.habitCountList.appendChild(item);
-  });
 }
 
 function renderTimerMode() {
@@ -854,6 +853,8 @@ function applySettings() {
   if (elements.webdavUrl) elements.webdavUrl.value = webdavConfig.url || "";
   if (elements.webdavUser) elements.webdavUser.value = webdavConfig.user || "";
   if (elements.webdavPass) elements.webdavPass.value = webdavConfig.pass || "";
+  if (elements.silentSyncToggle) elements.silentSyncToggle.checked = Boolean(webdavConfig.silentSync);
+  updateSyncStatus();
   elements.themeSwatches.querySelectorAll(".swatch").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.accent === settings.accent);
   });
@@ -924,7 +925,7 @@ async function webdavTestConnection() {
     const cfg = getWebdavRequestConfig("PROPFIND");
     const res = await fetch(webdavConfig.url, cfg);
     if (res.ok || res.status === 207 || res.status === 401 || res.status === 405) {
-      alert("WebDAV 响应正常，可继续上传/下载。");
+      alert("坚果云 WebDAV 响应正常，可继续同步。");
       return;
     }
     alert(`连接失败：HTTP ${res.status}`);
@@ -938,9 +939,12 @@ async function webdavUploadBackup() {
     const body = JSON.stringify(buildBackupPayload(), null, 2);
     const res = await fetch(webdavConfig.url, getWebdavRequestConfig("PUT", body));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    alert("已上传到 WebDAV。");
+    webdavConfig.lastSync = new Date().toISOString();
+    localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
+    updateSyncStatus();
+    alert("已手动同步上传到坚果云。");
   } catch (err) {
-    alert(`上传失败：${err.message}\n若你在 Workers 域名下访问本页，NAS 直连常被 CORS 拦截。`);
+    alert(`上传失败：${err.message}\n若在 Cloudflare 域名下访问，可能被坚果云 CORS 限制拦截。`);
   }
 }
 
@@ -950,9 +954,41 @@ async function webdavDownloadBackup() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const parsed = await res.json();
     applyBackupPayload(parsed);
-    alert("已从 WebDAV 下载并恢复。");
+    webdavConfig.lastSync = new Date().toISOString();
+    localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
+    updateSyncStatus();
+    alert("已从坚果云下载并恢复。");
   } catch (err) {
     alert(`下载失败：${err.message}`);
+  }
+}
+
+function updateSyncStatus() {
+  if (!elements.syncStatusText) return;
+  const mode = webdavConfig.silentSync ? "静默同步已开启" : "静默同步未开启";
+  const last = webdavConfig.lastSync ? `，上次：${new Date(webdavConfig.lastSync).toLocaleString("zh-CN")}` : "";
+  elements.syncStatusText.textContent = `${mode}${last}`;
+}
+
+function startSilentSyncTicker() {
+  if (uiState.silentSyncTick) clearInterval(uiState.silentSyncTick);
+  if (!webdavConfig.silentSync) return;
+  uiState.silentSyncTick = setInterval(() => {
+    silentSyncUpload();
+  }, 5 * 60 * 1000);
+}
+
+async function silentSyncUpload() {
+  if (!webdavConfig.url) return;
+  try {
+    const body = JSON.stringify(buildBackupPayload(), null, 2);
+    const res = await fetch(webdavConfig.url, getWebdavRequestConfig("PUT", body));
+    if (!res.ok) return;
+    webdavConfig.lastSync = new Date().toISOString();
+    localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
+    updateSyncStatus();
+  } catch {
+    // keep silent
   }
 }
 
@@ -1031,6 +1067,14 @@ async function registerBiometric() {
   }
 }
 
+function removeBiometric() {
+  localStorage.removeItem(BIO_CRED_KEY);
+  settings.privacyEnabled = false;
+  saveSettings();
+  hidePrivacyLock();
+  alert("已解除生物解锁。");
+}
+
 async function biometricUnlock() {
   if (!window.PublicKeyCredential) {
     alert("当前浏览器不支持生物识别 WebAuthn。");
@@ -1081,6 +1125,11 @@ function getMaxStreak() {
     }
     return streak;
   }));
+}
+
+function countDoneDays(habit) {
+  if (!habit) return 0;
+  return Object.keys(habit.history || {}).length;
 }
 
 function getProgressMessage(rate, total) {
