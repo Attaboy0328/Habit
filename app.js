@@ -255,7 +255,11 @@ const uiState = {
   swTimer: null,
   swStartedAt: 0,
   laps: [],
-  reminderTick: null
+  reminderTick: null,
+  statsDirty: true,
+  presetsDirty: true,
+  saveTimer: null,
+  renderFrame: null
 };
 
 bootstrap();
@@ -274,6 +278,7 @@ function bindEvents() {
   elements.navItems.forEach((button) => {
     button.addEventListener("click", () => switchScreen(button.dataset.screen || "home"));
   });
+  window.addEventListener("pagehide", saveState);
 
   if (elements.weekPrevBtn) {
     elements.weekPrevBtn.addEventListener("click", () => {
@@ -449,7 +454,19 @@ function loadReminders() {
 
 
 function saveState() {
+  if (uiState.saveTimer) {
+    clearTimeout(uiState.saveTimer);
+    uiState.saveTimer = null;
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function saveStateSoon() {
+  if (uiState.saveTimer) clearTimeout(uiState.saveTimer);
+  uiState.saveTimer = setTimeout(() => {
+    uiState.saveTimer = null;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, 120);
 }
 
 function saveSettings() {
@@ -491,7 +508,7 @@ function initThemeSwatches() {
       settings.themeId = palette.id;
       saveSettings();
       applySettings();
-      renderAll();
+      renderScreen(uiState.activeScreen, { force: true });
     });
     elements.themeSwatches.appendChild(btn);
   });
@@ -499,13 +516,7 @@ function initThemeSwatches() {
 
 function renderAll() {
   renderNav();
-  renderHome();
-  renderPresetGrid();
-  renderStats();
-  renderPomodoro();
-  renderStopwatch();
-  renderLaps();
-  renderTimerMode();
+  renderScreen(uiState.activeScreen, { force: true });
 }
 
 function renderNav() {
@@ -518,8 +529,51 @@ function renderNav() {
 }
 
 function switchScreen(screen) {
+  if (uiState.activeScreen === screen) return;
   uiState.activeScreen = screen;
   renderNav();
+  if (uiState.renderFrame) cancelAnimationFrame(uiState.renderFrame);
+  uiState.renderFrame = requestAnimationFrame(() => {
+    uiState.renderFrame = null;
+    renderScreen(screen);
+  });
+}
+
+function renderScreen(screen, options = {}) {
+  if (screen === "home") {
+    renderHome();
+    if (options.force || uiState.presetsDirty) {
+      renderPresetGrid();
+      uiState.presetsDirty = false;
+    }
+    return;
+  }
+
+  if (screen === "timer") {
+    renderPomodoro();
+    renderStopwatch();
+    renderLaps();
+    renderTimerMode();
+    return;
+  }
+
+  if (screen === "stats") {
+    if (options.force || uiState.statsDirty) renderStats();
+  }
+}
+
+function markStatsDirty() {
+  uiState.statsDirty = true;
+}
+
+function renderStatsIfVisible() {
+  if (uiState.activeScreen === "stats") renderStats();
+}
+
+function refreshHomeAfterHabitChange() {
+  markStatsDirty();
+  renderHome();
+  renderStatsIfVisible();
 }
 
 function renderHome() {
@@ -547,6 +601,7 @@ function renderHome() {
     return;
   }
 
+  const habitFragment = document.createDocumentFragment();
   state.habits.forEach((habit) => {
     const node = elements.habitItemTemplate.content.cloneNode(true);
     const item = node.querySelector(".habit-item");
@@ -586,7 +641,7 @@ function renderHome() {
       delete reminderState[habit.id];
       saveState();
       saveReminders();
-      renderAll();
+      refreshHomeAfterHabitChange();
     });
 
     check.addEventListener("click", () => {
@@ -597,38 +652,40 @@ function renderHome() {
       }
       item.classList.add("pulse");
       setTimeout(() => item.classList.remove("pulse"), 240);
-      saveState();
-      renderAll();
+      saveStateSoon();
+      refreshHomeAfterHabitChange();
     });
 
-    elements.habitList.appendChild(node);
+    habitFragment.appendChild(node);
   });
+  elements.habitList.appendChild(habitFragment);
 }
 
 function renderPresetGrid() {
+  const activeCategory = PRESET_CATEGORIES.find((c) => c.id === uiState.activeCategory) || PRESET_CATEGORIES[0];
   elements.categoryTabs.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.classList.toggle("is-active", btn.textContent === PRESET_CATEGORIES.find((c) => c.id === uiState.activeCategory)?.name);
+    btn.classList.toggle("is-active", btn.textContent === activeCategory.name);
   });
 
   elements.presetSections.innerHTML = "";
-  PRESET_CATEGORIES.forEach((category) => {
-    const section = document.createElement("section");
-    section.className = `preset-section${category.id === uiState.activeCategory ? " is-active" : ""}`;
-    const grid = document.createElement("div");
-    grid.className = "preset-grid";
+  const section = document.createElement("section");
+  section.className = "preset-section is-active";
+  const grid = document.createElement("div");
+  grid.className = "preset-grid";
+  const fragment = document.createDocumentFragment();
 
-    PRESET_HABITS.filter((item) => item.category === category.id).forEach((preset) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "preset-chip";
-      button.innerHTML = `<span>${preset.icon}</span><span>${preset.name}</span>`;
-      button.addEventListener("click", () => addPresetHabit(preset));
-      grid.appendChild(button);
-    });
-
-    section.appendChild(grid);
-    elements.presetSections.appendChild(section);
+  PRESET_HABITS.filter((item) => item.category === activeCategory.id).forEach((preset) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "preset-chip";
+    button.innerHTML = `<span>${preset.icon}</span><span>${preset.name}</span>`;
+    button.addEventListener("click", () => addPresetHabit(preset));
+    fragment.appendChild(button);
   });
+
+  grid.appendChild(fragment);
+  section.appendChild(grid);
+  elements.presetSections.appendChild(section);
 }
 
 function addCustomHabit() {
@@ -644,7 +701,7 @@ function addCustomHabit() {
     history: {}
   });
   saveState();
-  renderAll();
+  refreshHomeAfterHabitChange();
 }
 
 function addPresetHabit(preset) {
@@ -659,7 +716,7 @@ function addPresetHabit(preset) {
     });
   }
   saveState();
-  renderAll();
+  refreshHomeAfterHabitChange();
 }
 
 function renderStats() {
@@ -677,12 +734,14 @@ function renderStats() {
   renderWeekCircles(allCounts);
   renderYearHeatmap(allCounts);
   renderHabitStats();
+  uiState.statsDirty = false;
 }
 
 function renderWeekCircles(allCounts) {
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(uiState.statsWeekStart, index));
   elements.weekRangeLabel.textContent = `${formatShort(weekDays[0])} - ${formatShort(weekDays[6])}`;
   elements.weekCircleRow.innerHTML = "";
+  const fragment = document.createDocumentFragment();
 
   weekDays.forEach((date) => {
     const key = formatDateKey(date);
@@ -699,10 +758,10 @@ function renderWeekCircles(allCounts) {
     item.addEventListener("click", () => {
       cycleBackfill(key);
       renderStats();
-      renderHome();
     });
-    elements.weekCircleRow.appendChild(item);
+    fragment.appendChild(item);
   });
+  elements.weekCircleRow.appendChild(fragment);
 }
 
 function renderYearHeatmap(allCounts) {
@@ -737,13 +796,15 @@ function renderYearWeekMatrix(allCounts, weeks) {
   elements.yearAxis.innerHTML = "<span>日</span><span>六</span>";
   elements.yearHeatmapGrid.style.setProperty("--week-cols", String(weeks.length));
   elements.yearMonthLabels.style.setProperty("--week-cols", String(weeks.length));
+  const heatmapFragment = document.createDocumentFragment();
+  const labelFragment = document.createDocumentFragment();
 
   weeks.forEach((week, weekIndex) => {
     week.forEach((date, rowIndex) => {
       const cell = createYearHeatCell(date, allCounts);
       cell.style.gridColumn = String(weekIndex + 1);
       cell.style.gridRow = String(rowIndex + 1);
-      elements.yearHeatmapGrid.appendChild(cell);
+      heatmapFragment.appendChild(cell);
     });
   });
 
@@ -752,24 +813,29 @@ function renderYearWeekMatrix(allCounts, weeks) {
     const monthNode = document.createElement("span");
     monthNode.textContent = String(month + 1);
     monthNode.style.gridColumn = String(col + 1);
-    elements.yearMonthLabels.appendChild(monthNode);
+    labelFragment.appendChild(monthNode);
   });
+  elements.yearHeatmapGrid.appendChild(heatmapFragment);
+  elements.yearMonthLabels.appendChild(labelFragment);
 }
 
 function renderYearMonthMatrix(allCounts) {
   elements.yearAxis.innerHTML = "";
+  const axisFragment = document.createDocumentFragment();
+  const labelFragment = document.createDocumentFragment();
+  const heatmapFragment = document.createDocumentFragment();
   [1, 5, 10, 15, 20, 25, 30].forEach((day) => {
     const marker = document.createElement("span");
     marker.textContent = String(day);
     marker.style.gridRow = String(day);
-    elements.yearAxis.appendChild(marker);
+    axisFragment.appendChild(marker);
   });
 
   Array.from({ length: 12 }, (_, month) => {
     const monthNode = document.createElement("span");
     monthNode.textContent = `${month + 1}月`;
     monthNode.style.gridColumn = String(month + 1);
-    elements.yearMonthLabels.appendChild(monthNode);
+    labelFragment.appendChild(monthNode);
   });
 
   for (let day = 1; day <= 31; day += 1) {
@@ -779,14 +845,16 @@ function renderYearMonthMatrix(allCounts) {
       const cell = createYearHeatCell(isValid ? date : null, allCounts, true);
       cell.style.gridColumn = String(month + 1);
       cell.style.gridRow = String(day);
-      elements.yearHeatmapGrid.appendChild(cell);
+      heatmapFragment.appendChild(cell);
     }
   }
+  elements.yearAxis.appendChild(axisFragment);
+  elements.yearMonthLabels.appendChild(labelFragment);
+  elements.yearHeatmapGrid.appendChild(heatmapFragment);
 }
 
 function createYearHeatCell(date, allCounts, showValue = false) {
-  const cell = document.createElement("button");
-  cell.type = "button";
+  const cell = document.createElement("span");
   cell.className = "year-heatmap-cell";
 
   if (!date || date.getFullYear() !== uiState.statsYear) {
@@ -822,6 +890,7 @@ function renderHabitStats() {
     return;
   }
 
+  const fragment = document.createDocumentFragment();
   state.habits.forEach((habit, index) => {
     const count = getHabitDoneCount(habit, range.dates);
     const rate = range.dates.length ? Math.round((count / range.dates.length) * 100) : 0;
@@ -848,8 +917,9 @@ function renderHabitStats() {
       uiState.expandedHabitId = uiState.expandedHabitId === habit.id ? "" : habit.id;
       renderHabitStats();
     });
-    elements.habitStatsList.appendChild(card);
+    fragment.appendChild(card);
   });
+  elements.habitStatsList.appendChild(fragment);
 }
 
 function renderHabitMiniCells(habit, range) {
@@ -981,7 +1051,8 @@ function cycleBackfill(dateKey) {
   if (getBaseHabitCountByDate(dateKey) > 0 && next === 0) {
     delete state.backfill[dateKey];
   }
-  saveState();
+  markStatsDirty();
+  saveStateSoon();
 }
 
 function getPersistDays(dayKeys) {

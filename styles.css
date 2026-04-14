@@ -2095,3 +2095,79 @@ button {
     font-size: 10px;
   }
 }
+
+/* Pura 70 Pro smoothness pass: keep the premium feel, but avoid costly repaints. */
+button {
+  touch-action: manipulation;
+  transition:
+    transform .18s cubic-bezier(.2, .8, .2, 1),
+    opacity .18s ease,
+    background-color .22s ease,
+    color .22s ease,
+    border-color .22s ease;
+}
+
+.screen.is-active {
+  animation: screenEnterLite .24s cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes screenEnterLite {
+  from { opacity: .72; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.mobile-nav {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.mobile-nav__item,
+.tab-btn,
+.segmented__btn,
+.preset-chip,
+.week-circle-item,
+.year-mode-switch button,
+.habit-range-switch button {
+  will-change: transform;
+  transition:
+    transform .2s cubic-bezier(.2, .8, .2, 1),
+    background-color .22s ease,
+    color .22s ease,
+    border-color .22s ease;
+}
+
+.card,
+.timer-card,
+.stats-panel,
+.habit-stat-card {
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.stopwatch-glow {
+  animation: none;
+  opacity: .26;
+  transform: translateZ(0);
+}
+
+.stats-year,
+.stats-habits,
+.preset-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
+}
+
+.year-heatmap-cell {
+  contain: layout paint style;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
