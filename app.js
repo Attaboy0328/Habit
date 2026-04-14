@@ -7,7 +7,9 @@ const PRESET_CATEGORIES = [
   { id: "study", name: "学习" },
   { id: "health", name: "健康" },
   { id: "life", name: "生活" },
-  { id: "work", name: "工作" }
+  { id: "work", name: "工作" },
+  { id: "ritual", name: "晨晚仪式" },
+  { id: "mind", name: "心理健康" }
 ];
 
 const THEME_COLORS = [
@@ -69,7 +71,13 @@ const PRESET_HABITS = [
   { id: "chat-clean", name: "消息清理", goal: "及时回复", icon: "💬", category: "work" },
   { id: "learn-tool", name: "工具学习", goal: "学习 20 分钟", icon: "🛠️", category: "work" },
   { id: "brainstorm", name: "创意记录", goal: "记录 3 条点子", icon: "💡", category: "work" },
-  { id: "presentation", name: "演讲练习", goal: "练习 10 分钟", icon: "🎤", category: "work" }
+  { id: "presentation", name: "演讲练习", goal: "练习 10 分钟", icon: "🎤", category: "work" },
+  { id: "make-bed", name: "整理床铺", goal: "起床后 2 分钟", icon: "🛏️", category: "ritual" },
+  { id: "night-review", name: "睡前复盘", goal: "记录 3 条总结", icon: "🌃", category: "ritual" },
+  { id: "eye-warm", name: "眼部热敷", goal: "10 分钟", icon: "🫶", category: "health" },
+  { id: "slow-eat", name: "慢食咀嚼", goal: "每口咀嚼 20 次", icon: "🥗", category: "health" },
+  { id: "self-praise", name: "夸奖自己一次", goal: "写下 1 条肯定", icon: "🌟", category: "mind" },
+  { id: "mind-3min", name: "3分钟冥想", goal: "静坐 3 分钟", icon: "🧠", category: "mind" }
 ];
 
 const elements = {
@@ -79,7 +87,7 @@ const elements = {
   welcomeSub: document.querySelector("#welcomeSub"),
   todayProgress: document.querySelector("#todayProgress"),
   progressRate: document.querySelector("#progressRate"),
-  progressRing: document.querySelector("#progressRing"),
+  progressBarFill: document.querySelector("#progressBarFill"),
   progressMessage: document.querySelector("#progressMessage"),
   streakSummary: document.querySelector("#streakSummary"),
   habitList: document.querySelector("#habitList"),
@@ -90,6 +98,9 @@ const elements = {
   rangeBtns: Array.from(document.querySelectorAll("[data-range]")),
   timerModeBtns: Array.from(document.querySelectorAll("[data-timer-mode]")),
   timerPanels: Array.from(document.querySelectorAll(".timer-panel")),
+  unifiedTimerDisplay: document.querySelector("#unifiedTimerDisplay"),
+  pomoControls: document.querySelector("#pomoControls"),
+  stopwatchControls: document.querySelector("#stopwatchControls"),
   overallHeatmapTitle: document.querySelector("#overallHeatmapTitle"),
   overallHeatmapHint: document.querySelector("#overallHeatmapHint"),
   focusHabitTitle: document.querySelector("#focusHabitTitle"),
@@ -103,10 +114,9 @@ const elements = {
   statCheckins: document.querySelector("#statCheckins"),
   statActiveHabits: document.querySelector("#statActiveHabits"),
   statStreak: document.querySelector("#statStreak"),
-  pomoDisplay: document.querySelector("#pomoDisplay"),
-  pomoStart: document.querySelector("#pomoStart"),
-  pomoPause: document.querySelector("#pomoPause"),
-  pomoReset: document.querySelector("#pomoReset"),
+  timerStart: document.querySelector("#timerStart"),
+  timerPause: document.querySelector("#timerPause"),
+  timerReset: document.querySelector("#timerReset"),
   pomoApply: document.querySelector("#pomoApply"),
   immerseToggle: document.querySelector("#immerseToggle"),
   pomoMinus: document.querySelector("#pomoMinus"),
@@ -115,12 +125,8 @@ const elements = {
   ringtoneSelect: document.querySelector("#ringtoneSelect"),
   ringtonePreviewBtn: document.querySelector("#ringtonePreviewBtn"),
   pomoQuickBtns: Array.from(document.querySelectorAll("[data-pomo-minutes]")),
-  stopwatchDisplay: document.querySelector("#stopwatchDisplay"),
   stopwatchHint: document.querySelector("#stopwatchHint"),
   lapList: document.querySelector("#lapList"),
-  swStart: document.querySelector("#swStart"),
-  swPause: document.querySelector("#swPause"),
-  swReset: document.querySelector("#swReset"),
   themeSwatches: document.querySelector("#themeSwatches"),
   darkModeToggle: document.querySelector("#darkModeToggle"),
   clearLocalDataBtn: document.querySelector("#clearLocalDataBtn"),
@@ -206,23 +212,27 @@ function bindEvents() {
   });
   elements.ringtonePreviewBtn.addEventListener("click", () => playRingtone(settings.ringtone, 1.3));
 
-  elements.pomoStart.addEventListener("click", startPomodoro);
-  elements.pomoPause.addEventListener("click", pausePomodoro);
-  elements.pomoReset.addEventListener("click", () => {
-    pausePomodoro();
-    uiState.pomoLeftSec = uiState.pomoMinutes * 60;
-    renderPomodoro();
+  elements.timerStart.addEventListener("click", () => {
+    if (uiState.timerMode === "pomo") startPomodoro();
+    else startStopwatch();
   });
-
-  elements.swStart.addEventListener("click", startStopwatch);
-  elements.swPause.addEventListener("click", pauseStopwatch);
-  elements.swReset.addEventListener("click", () => {
-    pauseStopwatch();
-    uiState.swElapsedMs = 0;
-    uiState.laps = [];
-    renderLaps();
-    renderStopwatch();
-    elements.stopwatchHint.textContent = "准备开始专注";
+  elements.timerPause.addEventListener("click", () => {
+    if (uiState.timerMode === "pomo") pausePomodoro();
+    else pauseStopwatch();
+  });
+  elements.timerReset.addEventListener("click", () => {
+    if (uiState.timerMode === "pomo") {
+      pausePomodoro();
+      uiState.pomoLeftSec = uiState.pomoMinutes * 60;
+      renderPomodoro();
+    } else {
+      pauseStopwatch();
+      uiState.swElapsedMs = 0;
+      uiState.laps = [];
+      renderLaps();
+      renderStopwatch();
+      elements.stopwatchHint.textContent = "准备开始专注";
+    }
   });
 
   elements.darkModeToggle.addEventListener("change", () => {
@@ -369,15 +379,15 @@ function renderHome() {
   elements.welcomeSub.textContent = total === 0 ? "今日任务为空，可从下方添加" : "继续保持，今天也会很稳";
   elements.todayProgress.textContent = `${doneCount}/${total}`;
   elements.progressRate.textContent = `${rate}%`;
-  elements.progressRing.style.strokeDashoffset = `${264 - (264 * rate) / 100}`;
+  elements.progressBarFill.style.width = `${rate}%`;
   elements.progressMessage.textContent = getProgressMessage(rate, total);
   elements.streakSummary.textContent = `连续 ${getMaxStreak()} 天`;
 
   elements.habitList.innerHTML = "";
   if (total === 0) {
     const empty = document.createElement("div");
-    empty.className = "empty-box";
-    empty.textContent = "今日任务为空，请从下方快速添加习惯。";
+    empty.className = "empty-box empty-box--focus";
+    empty.innerHTML = `<div class="empty-box__icon">🗂️</div><div>今日任务为空，点下方“快速添加习惯”立即开始。</div>`;
     elements.habitList.appendChild(empty);
     return;
   }
@@ -400,6 +410,7 @@ function renderHome() {
     goal.textContent = habit.goal;
     item.classList.toggle("is-done", isDone);
     check.classList.toggle("is-done", isDone);
+    item.style.background = isDone ? "color-mix(in srgb, var(--accent) 16%, var(--surface-soft))" : "";
     remind.classList.toggle("is-active", remindConf.enabled);
 
     edit.addEventListener("click", () => {
@@ -665,9 +676,14 @@ function renderTimerMode() {
   elements.timerModeBtns.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.timerMode === uiState.timerMode);
   });
-  elements.timerPanels.forEach((panel) => {
-    panel.classList.toggle("is-active", panel.dataset.timerPanel === uiState.timerMode);
-  });
+  elements.pomoControls.classList.toggle("is-hidden", uiState.timerMode !== "pomo");
+  elements.pomoMinus.closest(".time-stepper").classList.toggle("is-hidden", uiState.timerMode !== "pomo");
+  elements.pomoCustomMinutes.closest(".time-input-row").classList.toggle("is-hidden", uiState.timerMode !== "pomo");
+  elements.ringtoneSelect.closest(".time-input-row").classList.toggle("is-hidden", uiState.timerMode !== "pomo");
+  elements.ringtonePreviewBtn.classList.toggle("is-hidden", uiState.timerMode !== "pomo");
+  elements.timerReset.textContent = uiState.timerMode === "pomo" ? "重置" : "清零";
+  if (uiState.timerMode === "pomo") renderPomodoro();
+  else renderStopwatch();
 }
 
 function applyPomodoroMinutes(minutes) {
@@ -704,7 +720,7 @@ function pausePomodoro() {
 function renderPomodoro() {
   const min = Math.floor(uiState.pomoLeftSec / 60);
   const sec = uiState.pomoLeftSec % 60;
-  elements.pomoDisplay.textContent = `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  elements.unifiedTimerDisplay.textContent = `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
 function playRingtone(type, seconds = 1.8) {
@@ -745,7 +761,7 @@ function ensureAudioReady() {
 function startStopwatch() {
   if (uiState.swTimer) return;
   uiState.swStartedAt = Date.now();
-  uiState.laps.unshift({ label: "开始", value: elements.stopwatchDisplay.textContent });
+  uiState.laps.unshift({ label: "开始", value: elements.unifiedTimerDisplay.textContent });
   uiState.laps = uiState.laps.slice(0, 8);
   renderLaps();
   uiState.swTimer = setInterval(renderStopwatch, 200);
@@ -766,7 +782,7 @@ function pauseStopwatch() {
 
 function renderStopwatch() {
   const elapsed = uiState.swTimer ? uiState.swElapsedMs + (Date.now() - uiState.swStartedAt) : uiState.swElapsedMs;
-  elements.stopwatchDisplay.textContent = formatElapsed(elapsed);
+  elements.unifiedTimerDisplay.textContent = formatElapsed(elapsed);
 }
 
 function renderLaps() {

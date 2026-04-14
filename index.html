@@ -22,23 +22,21 @@
           <div class="progress-pill" id="todayProgress">0/0</div>
         </header>
 
-        <section class="card card--progress">
-          <div class="ring" aria-hidden="true">
-            <svg viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="42" class="ring__base"></circle>
-              <circle cx="50" cy="50" r="42" class="ring__value" id="progressRing"></circle>
-            </svg>
-            <strong id="progressRate">0%</strong>
-          </div>
-          <p class="card__hint" id="progressMessage">先从一件小事开始。</p>
-        </section>
-
         <section class="card">
           <div class="card__head">
             <h2>今日任务</h2>
             <span id="streakSummary">连续 0 天</span>
           </div>
           <div id="habitList" class="habit-list"></div>
+        </section>
+
+        <section class="card card--progress-compact">
+          <div class="card__head">
+            <h2>今日进度</h2>
+            <strong id="progressRate">0%</strong>
+          </div>
+          <div class="progress-track"><div id="progressBarFill" class="progress-fill"></div></div>
+          <p class="card__hint" id="progressMessage">先从一件小事开始。</p>
         </section>
 
         <section class="card">
@@ -57,24 +55,27 @@
             <p class="topbar__label">专注时钟</p>
             <h1>计时</h1>
           </div>
-          <div class="segmented" role="tablist" aria-label="计时模式">
-            <button class="segmented__btn is-active" data-timer-mode="pomo" type="button">番茄钟</button>
-            <button class="segmented__btn" data-timer-mode="stopwatch" type="button">正向计时</button>
-          </div>
         </header>
 
         <section class="card timer-card timer-panel is-active" data-timer-panel="pomo">
           <div class="card__head">
-            <h2>番茄钟</h2>
+            <h2>专注计时</h2>
+          </div>
+          <div class="timer-main" id="unifiedTimerDisplay">25:00</div>
+          <div class="segmented segmented--timer" role="tablist" aria-label="计时模式">
+            <button class="segmented__btn is-active" data-timer-mode="pomo" type="button">番茄钟</button>
+            <button class="segmented__btn" data-timer-mode="stopwatch" type="button">正向计时</button>
+          </div>
+          <div id="pomoControls">
             <div class="quick-minutes">
               <button type="button" class="quick-btn" data-pomo-minutes="5">5m</button>
               <button type="button" class="quick-btn" data-pomo-minutes="10">10m</button>
               <button type="button" class="quick-btn" data-pomo-minutes="15">15m</button>
               <button type="button" class="quick-btn" data-pomo-minutes="30">30m</button>
             </div>
+            <button type="button" id="immerseToggle" class="immerse-btn">沉浸模式：关</button>
           </div>
-          <button type="button" id="immerseToggle" class="immerse-btn">沉浸模式：关</button>
-          <div class="timer-main" id="pomoDisplay">25:00</div>
+          <div id="stopwatchControls" class="is-hidden"></div>
           <div class="time-stepper">
             <button id="pomoMinus" type="button" class="step-btn" aria-label="减少1分钟">-1m</button>
             <span>快速微调</span>
@@ -96,26 +97,11 @@
           </div>
           <button type="button" id="ringtonePreviewBtn" class="ringtone-preview-single">试听当前铃声</button>
           <div class="timer-actions">
-            <button id="pomoStart" class="btn-primary" type="button">开始</button>
-            <button id="pomoPause" class="btn-ghost" type="button">暂停</button>
-            <button id="pomoReset" class="btn-ghost" type="button">重置</button>
+            <button id="timerStart" class="btn-primary" type="button">开始</button>
+            <button id="timerPause" class="btn-ghost" type="button">暂停</button>
+            <button id="timerReset" class="btn-ghost" type="button">重置</button>
           </div>
-        </section>
-
-        <section class="card timer-card timer-panel" data-timer-panel="stopwatch">
-          <div class="card__head">
-            <h2>正向计时</h2>
-          </div>
-          <div class="stopwatch-hero">
-            <div class="stopwatch-glow"></div>
-            <div class="timer-main" id="stopwatchDisplay">00:00:00</div>
-            <p id="stopwatchHint" class="stopwatch-hint">准备开始专注</p>
-          </div>
-          <div class="timer-actions">
-            <button id="swStart" class="btn-primary" type="button">开始</button>
-            <button id="swPause" class="btn-ghost" type="button">暂停</button>
-            <button id="swReset" class="btn-ghost" type="button">清零</button>
-          </div>
+          <p id="stopwatchHint" class="stopwatch-hint">准备开始专注</p>
           <div class="lap-list-wrap">
             <div class="card__head"><h3>计时记录</h3></div>
             <div id="lapList" class="lap-list"></div>
