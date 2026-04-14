@@ -208,7 +208,8 @@
         <section class="card settings-list">
           <section class="setting-cell setting-cell--panel">
             <span>备份与同步</span>
-            <small>坚果云 WebDAV（推荐地址如 https://dav.jianguoyun.com/dav/habit-backup.json）</small>
+            <small>坚果云 WebDAV（通过 Cloudflare 代理，规避浏览器 CORS）</small>
+            <div class="proxy-note">代理地址：<code>https://dav.282913.xyz</code>（备用：<code>https://www.dav.282913.xyz</code>）</div>
             <div class="webdav-form">
               <input id="webdavUrl" type="text" placeholder="坚果云 WebDAV 地址">
               <input id="webdavUser" type="text" placeholder="账号">

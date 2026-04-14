@@ -3,6 +3,8 @@ const SETTINGS_KEY = "habit-mobile-settings-v3";
 const REMINDER_KEY = "habit-mobile-reminders-v1";
 const BIO_CRED_KEY = "habit-mobile-bio-cred-v1";
 const WEBDAV_KEY = "habit-mobile-webdav-v1";
+const PROXY_PRIMARY = "https://dav.282913.xyz";
+const PROXY_FALLBACK = "https://www.dav.282913.xyz";
 
 const PRESET_CATEGORIES = [
   { id: "study", name: "学习" },
@@ -307,7 +309,7 @@ function loadReminders() {
 
 function loadWebdavConfig() {
   const raw = localStorage.getItem(WEBDAV_KEY);
-  if (!raw) return { url: "", user: "", pass: "", silentSync: false, lastSync: "" };
+  if (!raw) return { url: "", user: "", pass: "", silentSync: false, lastSync: "", proxyBase: PROXY_PRIMARY };
   try {
     const parsed = JSON.parse(raw);
     return {
@@ -315,10 +317,11 @@ function loadWebdavConfig() {
       user: parsed.user || "",
       pass: parsed.pass || "",
       silentSync: Boolean(parsed.silentSync),
-      lastSync: parsed.lastSync || ""
+      lastSync: parsed.lastSync || "",
+      proxyBase: parsed.proxyBase || PROXY_PRIMARY
     };
   } catch {
-    return { url: "", user: "", pass: "", silentSync: false, lastSync: "" };
+    return { url: "", user: "", pass: "", silentSync: false, lastSync: "", proxyBase: PROXY_PRIMARY };
   }
 }
 
@@ -912,47 +915,70 @@ function downloadBackupJson() {
 function getWebdavRequestConfig(method, body) {
   saveWebdavConfig();
   if (!webdavConfig.url) throw new Error("请先填写 WebDAV 地址");
-  const headers = {};
-  if (webdavConfig.user || webdavConfig.pass) {
-    headers.Authorization = `Basic ${btoa(`${webdavConfig.user}:${webdavConfig.pass}`)}`;
+  const headers = { "Content-Type": "application/json" };
+  const payload = {
+    targetUrl: webdavConfig.url,
+    username: webdavConfig.user,
+    password: webdavConfig.pass,
+    method,
+    body: body || ""
+  };
+  return { headers, body: JSON.stringify(payload) };
+}
+
+async function proxyWebdavFetch(method, body) {
+  const cfg = getWebdavRequestConfig(method, body);
+  const bases = [webdavConfig.proxyBase || PROXY_PRIMARY, PROXY_FALLBACK];
+  let lastError = null;
+
+  for (const base of bases) {
+    try {
+      const endpoint = `${base.replace(/\/+$/, "")}/proxy/webdav`;
+      const res = await fetch(endpoint, { method: "POST", headers: cfg.headers, body: cfg.body });
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || `代理返回 HTTP ${res.status}`);
+      }
+      const text = await res.text();
+      return { text, base };
+    } catch (err) {
+      lastError = err;
+      webdavConfig.proxyBase = base === PROXY_PRIMARY ? PROXY_FALLBACK : PROXY_PRIMARY;
+    }
   }
-  if (body) headers["Content-Type"] = "application/json";
-  return { method, headers, body };
+  throw lastError || new Error("代理不可用");
 }
 
 async function webdavTestConnection() {
   try {
-    const cfg = getWebdavRequestConfig("PROPFIND");
-    const res = await fetch(webdavConfig.url, cfg);
-    if (res.ok || res.status === 207 || res.status === 401 || res.status === 405) {
-      alert("坚果云 WebDAV 响应正常，可继续同步。");
-      return;
-    }
-    alert(`连接失败：HTTP ${res.status}`);
+    const { base } = await proxyWebdavFetch("PROPFIND");
+    webdavConfig.proxyBase = base;
+    localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
+    alert(`坚果云连接正常，当前代理：${base}`);
   } catch (err) {
-    alert(`连接失败：${err.message}\n可能是浏览器跨域限制（CORS）或地址不可达。`);
+    alert(`连接失败：${err.message}`);
   }
 }
 
 async function webdavUploadBackup() {
   try {
     const body = JSON.stringify(buildBackupPayload(), null, 2);
-    const res = await fetch(webdavConfig.url, getWebdavRequestConfig("PUT", body));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { base } = await proxyWebdavFetch("PUT", body);
+    webdavConfig.proxyBase = base;
     webdavConfig.lastSync = new Date().toISOString();
     localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
     updateSyncStatus();
     alert("已手动同步上传到坚果云。");
   } catch (err) {
-    alert(`上传失败：${err.message}\n若在 Cloudflare 域名下访问，可能被坚果云 CORS 限制拦截。`);
+    alert(`上传失败：${err.message}`);
   }
 }
 
 async function webdavDownloadBackup() {
   try {
-    const res = await fetch(webdavConfig.url, getWebdavRequestConfig("GET"));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const parsed = await res.json();
+    const { text, base } = await proxyWebdavFetch("GET");
+    webdavConfig.proxyBase = base;
+    const parsed = JSON.parse(text);
     applyBackupPayload(parsed);
     webdavConfig.lastSync = new Date().toISOString();
     localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
@@ -982,8 +1008,8 @@ async function silentSyncUpload() {
   if (!webdavConfig.url) return;
   try {
     const body = JSON.stringify(buildBackupPayload(), null, 2);
-    const res = await fetch(webdavConfig.url, getWebdavRequestConfig("PUT", body));
-    if (!res.ok) return;
+    const { base } = await proxyWebdavFetch("PUT", body);
+    webdavConfig.proxyBase = base;
     webdavConfig.lastSync = new Date().toISOString();
     localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
     updateSyncStatus();

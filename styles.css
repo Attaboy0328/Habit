@@ -129,9 +129,10 @@ button:active { transform: scale(0.97); }
 .habit-item.is-done { opacity: .54; }
 .habit-item.pulse { animation: pulse .24s ease; }
 .habit-item__left { display: flex; align-items: center; gap: 10px; }
+.habit-item__left { min-width: 0; }
 .habit-item__icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .habit-item__title { margin: 0; font-size: 15px; }
-.habit-item__goal { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.habit-item__goal { margin: 2px 0 0; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .habit-item__actions { display: flex; gap: 4px; align-items: center; }
 .habit-item__edit,
 .habit-item__remind {
@@ -428,6 +429,14 @@ button:active { transform: scale(0.97); }
   background: transparent;
   color: var(--text);
 }
+.proxy-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+.proxy-note code {
+  font-family: "Outfit", sans-serif;
+  font-size: 12px;
+}
 .file-btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; }
 .file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
@@ -514,4 +523,13 @@ button:active { transform: scale(0.97); }
   .topbar h1 { font-size: 26px; }
   .timer-main { font-size: 40px; }
   .theme-swatches { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .habit-item__actions { gap: 3px; }
+  .habit-item__edit,
+  .habit-item__remind,
+  .habit-item__delete {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  .habit-item__check { width: 24px; height: 24px; }
 }
