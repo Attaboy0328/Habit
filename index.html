@@ -198,26 +198,19 @@
 
         <section class="card settings-list">
           <section class="setting-cell setting-cell--panel">
-            <span>提醒管理</span>
-            <small>为每个习惯设置每日提醒时间</small>
-            <div id="reminderList" class="reminder-list"></div>
-            <button id="notifyPermissionBtn" type="button" class="btn-ghost">开启系统通知权限</button>
-          </section>
-          <section class="setting-cell setting-cell--panel">
             <span>备份与同步</span>
-            <small>推荐方案：本地备份 + NAS/WebDAV。夸克云盘暂无稳定 WebDAV 接口。</small>
-            <div class="setting-actions">
-              <button id="downloadBackupBtn" type="button" class="btn-ghost">下载备份 JSON</button>
-              <button id="copyBackupBtn" type="button" class="btn-ghost">复制备份文本</button>
-              <label class="btn-ghost file-btn">导入备份 JSON<input id="importBackupInput" type="file" accept="application/json"></label>
+            <small>极空间 WebDAV 直连（同局域网建议 HTTP:5005，外网建议 HTTPS:5006）</small>
+            <div class="webdav-form">
+              <input id="webdavUrl" type="text" placeholder="WebDAV 地址，如 http://192.168.5.38:5005/habit-backup.json">
+              <input id="webdavUser" type="text" placeholder="账号">
+              <input id="webdavPass" type="password" placeholder="密码">
             </div>
-          </section>
-          <section class="setting-cell setting-cell--panel">
-            <span>数据导出</span>
-            <small>支持 CSV 与可打印周报（可另存 PDF）</small>
             <div class="setting-actions">
-              <button id="exportCsvBtn" type="button" class="btn-ghost">导出 CSV</button>
-              <button id="exportPdfBtn" type="button" class="btn-ghost">导出 PDF 周报</button>
+              <button id="webdavTestBtn" type="button" class="btn-ghost">测试连接</button>
+              <button id="webdavUploadBtn" type="button" class="btn-ghost">上传到WebDAV</button>
+              <button id="webdavDownloadBtn" type="button" class="btn-ghost">从WebDAV下载</button>
+              <button id="downloadBackupBtn" type="button" class="btn-ghost">下载本地备份</button>
+              <label class="btn-ghost file-btn">导入备份 JSON<input id="importBackupInput" type="file" accept="application/json"></label>
             </div>
           </section>
           <section class="setting-cell setting-cell--panel">
@@ -228,18 +221,6 @@
               <button id="unlockNowBtn" type="button" class="btn-ghost">立即解锁测试</button>
               <button id="lockNowBtn" type="button" class="btn-ghost">立即锁定</button>
             </div>
-          </section>
-          <section class="setting-cell setting-cell--panel">
-            <span>专注设置</span>
-            <small>支持翻转手机自动开始计时（需设备方向权限）</small>
-            <div class="setting-row">
-              <p>翻转开始番茄钟</p>
-              <label class="switch">
-                <input id="flipStartToggle" type="checkbox">
-                <span></span>
-              </label>
-            </div>
-            <button id="motionPermissionBtn" type="button" class="btn-ghost">开启运动传感器权限</button>
           </section>
         </section>
       </section>
@@ -272,8 +253,18 @@
         </div>
       </div>
       <div class="habit-item__actions">
+        <button class="habit-item__edit" type="button" aria-label="编辑目标">改</button>
+        <button class="habit-item__remind" type="button" aria-label="提醒设置">⏰</button>
         <button class="habit-item__delete" type="button" aria-label="删除习惯">删</button>
         <button class="habit-item__check" type="button" aria-label="打卡"></button>
+      </div>
+      <div class="habit-item__reminder-panel is-hidden">
+        <label>提醒时间 <input class="habit-reminder-time" type="time" value="09:00"></label>
+        <label class="switch">
+          <input class="habit-reminder-toggle" type="checkbox">
+          <span></span>
+        </label>
+        <button class="habit-reminder-permission btn-ghost" type="button">通知权限</button>
       </div>
     </article>
   </template>

@@ -2,6 +2,7 @@
 const SETTINGS_KEY = "habit-mobile-settings-v3";
 const REMINDER_KEY = "habit-mobile-reminders-v1";
 const BIO_CRED_KEY = "habit-mobile-bio-cred-v1";
+const WEBDAV_KEY = "habit-mobile-webdav-v1";
 
 const PRESET_CATEGORIES = [
   { id: "study", name: "学习" },
@@ -119,18 +120,17 @@ const elements = {
   swReset: document.querySelector("#swReset"),
   themeSwatches: document.querySelector("#themeSwatches"),
   darkModeToggle: document.querySelector("#darkModeToggle"),
-  reminderList: document.querySelector("#reminderList"),
-  notifyPermissionBtn: document.querySelector("#notifyPermissionBtn"),
+  webdavUrl: document.querySelector("#webdavUrl"),
+  webdavUser: document.querySelector("#webdavUser"),
+  webdavPass: document.querySelector("#webdavPass"),
+  webdavTestBtn: document.querySelector("#webdavTestBtn"),
+  webdavUploadBtn: document.querySelector("#webdavUploadBtn"),
+  webdavDownloadBtn: document.querySelector("#webdavDownloadBtn"),
   downloadBackupBtn: document.querySelector("#downloadBackupBtn"),
-  copyBackupBtn: document.querySelector("#copyBackupBtn"),
   importBackupInput: document.querySelector("#importBackupInput"),
-  exportCsvBtn: document.querySelector("#exportCsvBtn"),
-  exportPdfBtn: document.querySelector("#exportPdfBtn"),
   registerBioBtn: document.querySelector("#registerBioBtn"),
   unlockNowBtn: document.querySelector("#unlockNowBtn"),
   lockNowBtn: document.querySelector("#lockNowBtn"),
-  flipStartToggle: document.querySelector("#flipStartToggle"),
-  motionPermissionBtn: document.querySelector("#motionPermissionBtn"),
   privacyLock: document.querySelector("#privacyLock"),
   privacyUnlockBtn: document.querySelector("#privacyUnlockBtn"),
   privacyFallbackBtn: document.querySelector("#privacyFallbackBtn")
@@ -139,6 +139,7 @@ const elements = {
 const state = loadState();
 const settings = loadSettings();
 const reminderState = loadReminders();
+const webdavConfig = loadWebdavConfig();
 let soundContext = null;
 
 const uiState = {
@@ -165,9 +166,7 @@ function bootstrap() {
   initThemeSwatches();
   applySettings();
   renderAll();
-  renderReminders();
   startReminderTicker();
-  initMotionListener();
   if (settings.privacyEnabled) showPrivacyLock();
 }
 
@@ -236,22 +235,19 @@ function bindEvents() {
     applySettings();
   });
   elements.addCustomHabit.addEventListener("click", addCustomHabit);
-  elements.notifyPermissionBtn.addEventListener("click", requestNotificationPermission);
-  elements.downloadBackupBtn.addEventListener("click", downloadBackupJson);
-  elements.copyBackupBtn.addEventListener("click", copyBackupJson);
-  elements.importBackupInput.addEventListener("change", importBackupJson);
-  elements.exportCsvBtn.addEventListener("click", exportCsvReport);
-  elements.exportPdfBtn.addEventListener("click", exportPrintablePdf);
-  elements.registerBioBtn.addEventListener("click", registerBiometric);
-  elements.unlockNowBtn.addEventListener("click", biometricUnlock);
-  elements.lockNowBtn.addEventListener("click", showPrivacyLock);
-  elements.privacyUnlockBtn.addEventListener("click", biometricUnlock);
-  elements.privacyFallbackBtn.addEventListener("click", fallbackUnlock);
-  elements.flipStartToggle.addEventListener("change", () => {
-    settings.flipToStart = elements.flipStartToggle.checked;
-    saveSettings();
-  });
-  elements.motionPermissionBtn.addEventListener("click", requestMotionPermission);
+  if (elements.downloadBackupBtn) elements.downloadBackupBtn.addEventListener("click", downloadBackupJson);
+  if (elements.importBackupInput) elements.importBackupInput.addEventListener("change", importBackupJson);
+  if (elements.webdavTestBtn) elements.webdavTestBtn.addEventListener("click", webdavTestConnection);
+  if (elements.webdavUploadBtn) elements.webdavUploadBtn.addEventListener("click", webdavUploadBackup);
+  if (elements.webdavDownloadBtn) elements.webdavDownloadBtn.addEventListener("click", webdavDownloadBackup);
+  if (elements.webdavUrl) elements.webdavUrl.addEventListener("change", saveWebdavConfig);
+  if (elements.webdavUser) elements.webdavUser.addEventListener("change", saveWebdavConfig);
+  if (elements.webdavPass) elements.webdavPass.addEventListener("change", saveWebdavConfig);
+  if (elements.registerBioBtn) elements.registerBioBtn.addEventListener("click", registerBiometric);
+  if (elements.unlockNowBtn) elements.unlockNowBtn.addEventListener("click", biometricUnlock);
+  if (elements.lockNowBtn) elements.lockNowBtn.addEventListener("click", showPrivacyLock);
+  if (elements.privacyUnlockBtn) elements.privacyUnlockBtn.addEventListener("click", biometricUnlock);
+  if (elements.privacyFallbackBtn) elements.privacyFallbackBtn.addEventListener("click", fallbackUnlock);
 }
 
 function loadState() {
@@ -267,18 +263,17 @@ function loadState() {
 
 function loadSettings() {
   const raw = localStorage.getItem(SETTINGS_KEY);
-  if (!raw) return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft", flipToStart: false, privacyEnabled: false };
+  if (!raw) return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft", privacyEnabled: false };
   try {
     const parsed = JSON.parse(raw);
     return {
       accent: parsed.accent || THEME_COLORS[0],
       darkMode: Boolean(parsed.darkMode),
       ringtone: parsed.ringtone || "soft",
-      flipToStart: Boolean(parsed.flipToStart),
       privacyEnabled: Boolean(parsed.privacyEnabled)
     };
   } catch {
-    return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft", flipToStart: false, privacyEnabled: false };
+    return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft", privacyEnabled: false };
   }
 }
 
@@ -293,6 +288,17 @@ function loadReminders() {
   }
 }
 
+function loadWebdavConfig() {
+  const raw = localStorage.getItem(WEBDAV_KEY);
+  if (!raw) return { url: "", user: "", pass: "" };
+  try {
+    const parsed = JSON.parse(raw);
+    return { url: parsed.url || "", user: parsed.user || "", pass: parsed.pass || "" };
+  } catch {
+    return { url: "", user: "", pass: "" };
+  }
+}
+
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -304,6 +310,13 @@ function saveSettings() {
 
 function saveReminders() {
   localStorage.setItem(REMINDER_KEY, JSON.stringify(reminderState));
+}
+
+function saveWebdavConfig() {
+  webdavConfig.url = (elements.webdavUrl?.value || "").trim();
+  webdavConfig.user = (elements.webdavUser?.value || "").trim();
+  webdavConfig.pass = elements.webdavPass?.value || "";
+  localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
 }
 
 function initCategoryTabs() {
@@ -350,7 +363,6 @@ function renderAll() {
   renderLaps();
   renderTimerMode();
   renderImmersiveTimer();
-  renderReminders();
 }
 
 function renderNav() {
@@ -403,19 +415,56 @@ function renderHome() {
     const icon = node.querySelector(".habit-item__icon");
     const title = node.querySelector(".habit-item__title");
     const goal = node.querySelector(".habit-item__goal");
+    const edit = node.querySelector(".habit-item__edit");
+    const remind = node.querySelector(".habit-item__remind");
     const del = node.querySelector(".habit-item__delete");
     const check = node.querySelector(".habit-item__check");
+    const panel = node.querySelector(".habit-item__reminder-panel");
+    const timeInput = node.querySelector(".habit-reminder-time");
+    const remindToggle = node.querySelector(".habit-reminder-toggle");
+    const permissionBtn = node.querySelector(".habit-reminder-permission");
     const isDone = Boolean(habit.history[todayKey]);
+    const remindConf = reminderState[habit.id] || { enabled: false, time: "09:00", lastSent: "" };
 
     icon.textContent = habit.icon;
     title.textContent = habit.name;
     goal.textContent = habit.goal;
     item.classList.toggle("is-done", isDone);
     check.classList.toggle("is-done", isDone);
+    remind.classList.toggle("is-active", remindConf.enabled);
+    timeInput.value = remindConf.time || "09:00";
+    remindToggle.checked = Boolean(remindConf.enabled);
+
+    edit.addEventListener("click", () => {
+      const nextGoal = (window.prompt(`修改「${habit.name}」目标`, habit.goal) || "").trim();
+      if (!nextGoal) return;
+      habit.goal = nextGoal;
+      saveState();
+      renderAll();
+    });
+
+    remind.addEventListener("click", () => {
+      panel.classList.toggle("is-hidden");
+    });
+
+    timeInput.addEventListener("change", () => {
+      reminderState[habit.id] = { ...remindConf, enabled: remindToggle.checked, time: timeInput.value, lastSent: remindConf.lastSent || "" };
+      saveReminders();
+    });
+
+    remindToggle.addEventListener("change", () => {
+      reminderState[habit.id] = { ...remindConf, enabled: remindToggle.checked, time: timeInput.value, lastSent: remindConf.lastSent || "" };
+      remind.classList.toggle("is-active", remindToggle.checked);
+      saveReminders();
+    });
+
+    permissionBtn.addEventListener("click", requestNotificationPermission);
 
     del.addEventListener("click", () => {
       state.habits = state.habits.filter((h) => h.id !== habit.id);
+      delete reminderState[habit.id];
       saveState();
+      saveReminders();
       renderAll();
     });
 
@@ -501,8 +550,12 @@ function addPresetHabit(preset) {
 }
 
 function renderStats() {
-  const days = uiState.statsRange === "week" ? 7 : uiState.statsRange === "month" ? 30 : 365;
-  const periodDates = getRecentDays(days);
+  const periodDates =
+    uiState.statsRange === "week"
+      ? getCurrentWeekDays()
+      : uiState.statsRange === "month"
+        ? getCurrentMonthDays()
+        : getCurrentYearDays();
   const periodKeys = periodDates.map(formatDateKey);
 
   let checkins = 0;
@@ -536,10 +589,10 @@ function renderStats() {
     elements.overallHeatmapHint.textContent = "展示本周每天完成情况";
   } else if (uiState.statsRange === "month") {
     elements.overallHeatmapTitle.textContent = "月热力图";
-    elements.overallHeatmapHint.textContent = "展示近30天完成情况";
+    elements.overallHeatmapHint.textContent = "展示本月每天完成情况";
   } else {
     elements.overallHeatmapTitle.textContent = "年热力图";
-    elements.overallHeatmapHint.textContent = "按月份查看全年热力分布";
+    elements.overallHeatmapHint.textContent = "按月份查看当年完成分布";
   }
 
   renderOverallHeatmap();
@@ -587,8 +640,9 @@ function renderOverallHeatmap() {
   }
 
   if (uiState.statsRange === "month") {
-    const monthDays = getRecentDays(30);
-    renderHeatRangeBlock(monthDays, `近30天 ${formatShort(monthDays[0])}-${formatShort(monthDays[monthDays.length - 1])}`, false);
+    const monthDays = getCurrentMonthDays();
+    const d = new Date();
+    renderHeatRangeBlock(monthDays, `${d.getMonth() + 1}月 ${d.getFullYear()}`, false);
     return;
   }
 
@@ -611,18 +665,24 @@ function renderHeatRangeBlock(days, label, compact) {
   const grid = document.createElement("div");
   grid.className = compact ? "range-grid compact" : "range-grid";
 
-  const maxCells = compact ? 42 : Math.ceil(days.length / 7) * 7;
+  const first = days[0];
+  const firstOffset = first ? (first.getDay() + 6) % 7 : 0;
+  const maxCells = 42;
   for (let i = 0; i < maxCells; i += 1) {
     const cell = document.createElement("div");
     cell.className = "heat-cell";
 
-    if (i < days.length) {
-      const key = formatDateKey(days[i]);
+    const dayIndex = i - firstOffset;
+    if (dayIndex >= 0 && dayIndex < days.length) {
+      const date = days[dayIndex];
+      const key = formatDateKey(date);
       const count = state.habits.filter((habit) => habit.history[key]).length;
       if (count > 0 && count <= 2) cell.classList.add("lv1");
       if (count > 2 && count <= 4) cell.classList.add("lv2");
       if (count > 4) cell.classList.add("lv3");
-      if (!compact) cell.textContent = count > 0 ? String(count) : "";
+      cell.title = `${formatDateKey(date)}：${count} 次`;
+      if (!compact) cell.textContent = String(date.getDate());
+      if (count === 0) cell.classList.add("is-empty");
     }
 
     grid.appendChild(cell);
@@ -790,42 +850,12 @@ function applySettings() {
   document.documentElement.style.setProperty("--accent-strong", settings.accent);
   document.documentElement.dataset.theme = settings.darkMode ? "dark" : "light";
   elements.darkModeToggle.checked = settings.darkMode;
-  elements.flipStartToggle.checked = settings.flipToStart;
   elements.ringtoneSelect.value = settings.ringtone || "soft";
+  if (elements.webdavUrl) elements.webdavUrl.value = webdavConfig.url || "";
+  if (elements.webdavUser) elements.webdavUser.value = webdavConfig.user || "";
+  if (elements.webdavPass) elements.webdavPass.value = webdavConfig.pass || "";
   elements.themeSwatches.querySelectorAll(".swatch").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.accent === settings.accent);
-  });
-}
-
-function renderReminders() {
-  elements.reminderList.innerHTML = "";
-  if (!state.habits.length) {
-    elements.reminderList.innerHTML = '<div class="empty-box">先添加习惯后再设置提醒。</div>';
-    return;
-  }
-  state.habits.forEach((habit) => {
-    const row = document.createElement("div");
-    row.className = "reminder-item";
-    const conf = reminderState[habit.id] || { enabled: false, time: "09:00", lastSent: "" };
-    row.innerHTML = `
-      <span>${habit.icon} ${habit.name}</span>
-      <input type="time" value="${conf.time || "09:00"}">
-      <label class="switch">
-        <input type="checkbox" ${conf.enabled ? "checked" : ""}>
-        <span></span>
-      </label>
-    `;
-    const timeInput = row.querySelector('input[type="time"]');
-    const enabledInput = row.querySelector('input[type="checkbox"]');
-    timeInput.addEventListener("change", () => {
-      reminderState[habit.id] = { ...conf, enabled: enabledInput.checked, time: timeInput.value, lastSent: conf.lastSent || "" };
-      saveReminders();
-    });
-    enabledInput.addEventListener("change", () => {
-      reminderState[habit.id] = { ...conf, enabled: enabledInput.checked, time: timeInput.value, lastSent: conf.lastSent || "" };
-      saveReminders();
-    });
-    elements.reminderList.appendChild(row);
   });
 }
 
@@ -878,9 +908,52 @@ function downloadBackupJson() {
   URL.revokeObjectURL(url);
 }
 
-function copyBackupJson() {
-  const text = JSON.stringify(buildBackupPayload(), null, 2);
-  navigator.clipboard.writeText(text).then(() => alert("备份文本已复制"));
+function getWebdavRequestConfig(method, body) {
+  saveWebdavConfig();
+  if (!webdavConfig.url) throw new Error("请先填写 WebDAV 地址");
+  const headers = {};
+  if (webdavConfig.user || webdavConfig.pass) {
+    headers.Authorization = `Basic ${btoa(`${webdavConfig.user}:${webdavConfig.pass}`)}`;
+  }
+  if (body) headers["Content-Type"] = "application/json";
+  return { method, headers, body };
+}
+
+async function webdavTestConnection() {
+  try {
+    const cfg = getWebdavRequestConfig("PROPFIND");
+    const res = await fetch(webdavConfig.url, cfg);
+    if (res.ok || res.status === 207 || res.status === 401 || res.status === 405) {
+      alert("WebDAV 响应正常，可继续上传/下载。");
+      return;
+    }
+    alert(`连接失败：HTTP ${res.status}`);
+  } catch (err) {
+    alert(`连接失败：${err.message}\n可能是浏览器跨域限制（CORS）或地址不可达。`);
+  }
+}
+
+async function webdavUploadBackup() {
+  try {
+    const body = JSON.stringify(buildBackupPayload(), null, 2);
+    const res = await fetch(webdavConfig.url, getWebdavRequestConfig("PUT", body));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    alert("已上传到 WebDAV。");
+  } catch (err) {
+    alert(`上传失败：${err.message}\n若你在 Workers 域名下访问本页，NAS 直连常被 CORS 拦截。`);
+  }
+}
+
+async function webdavDownloadBackup() {
+  try {
+    const res = await fetch(webdavConfig.url, getWebdavRequestConfig("GET"));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const parsed = await res.json();
+    applyBackupPayload(parsed);
+    alert("已从 WebDAV 下载并恢复。");
+  } catch (err) {
+    alert(`下载失败：${err.message}`);
+  }
 }
 
 function importBackupJson(event) {
@@ -889,22 +962,7 @@ function importBackupJson(event) {
   file.text().then((text) => {
     try {
       const parsed = JSON.parse(text);
-      if (parsed.state?.habits) {
-        state.habits = parsed.state.habits;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      }
-      if (parsed.settings) {
-        Object.assign(settings, parsed.settings);
-        saveSettings();
-      }
-      if (parsed.reminders) {
-        Object.keys(reminderState).forEach((k) => delete reminderState[k]);
-        Object.assign(reminderState, parsed.reminders);
-        saveReminders();
-      }
-      applySettings();
-      renderAll();
-      renderReminders();
+      applyBackupPayload(parsed);
       alert("备份导入成功");
     } catch {
       alert("导入失败：文件格式不正确");
@@ -912,40 +970,22 @@ function importBackupJson(event) {
   });
 }
 
-function exportCsvReport() {
-  const lines = ["habit,goal,total_checkins,current_streak"];
-  state.habits.forEach((habit) => {
-    const total = Object.keys(habit.history).length;
-    let streak = 0;
-    const c = new Date();
-    while (habit.history[formatDateKey(c)]) {
-      streak += 1;
-      c.setDate(c.getDate() - 1);
-    }
-    lines.push(`"${habit.name}","${habit.goal}",${total},${streak}`);
-  });
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `habit-report-${formatDateKey(new Date())}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function exportPrintablePdf() {
-  const w = window.open("", "_blank");
-  if (!w) return;
-  const html = `
-    <html><head><title>Habit Weekly Report</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{margin-bottom:8px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style></head>
-    <body><h1>Habit 周报 (${formatDateKey(new Date())})</h1>
-    <table><thead><tr><th>习惯</th><th>目标</th><th>总打卡</th></tr></thead><tbody>
-    ${state.habits.map((h) => `<tr><td>${h.name}</td><td>${h.goal}</td><td>${Object.keys(h.history).length}</td></tr>`).join("")}
-    </tbody></table></body></html>`;
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  w.print();
+function applyBackupPayload(parsed) {
+  if (parsed.state?.habits) {
+    state.habits = parsed.state.habits;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+  if (parsed.settings) {
+    Object.assign(settings, parsed.settings);
+    saveSettings();
+  }
+  if (parsed.reminders) {
+    Object.keys(reminderState).forEach((k) => delete reminderState[k]);
+    Object.assign(reminderState, parsed.reminders);
+    saveReminders();
+  }
+  applySettings();
+  renderAll();
 }
 
 function randomBuffer(len = 32) {
@@ -1030,23 +1070,6 @@ function fallbackUnlock() {
   if (token === "HABIT-UNLOCK") hidePrivacyLock();
 }
 
-function initMotionListener() {
-  window.addEventListener("deviceorientation", (event) => {
-    if (!settings.flipToStart || uiState.activeScreen !== "timer" || uiState.timerMode !== "pomo") return;
-    if (typeof event.beta === "number" && event.beta > 155 && !uiState.pomoTimer) {
-      startPomodoro();
-    }
-  });
-}
-
-function requestMotionPermission() {
-  const req = window.DeviceOrientationEvent && window.DeviceOrientationEvent.requestPermission;
-  if (typeof req === "function") {
-    req().then((res) => alert(res === "granted" ? "运动权限已开启" : "运动权限未开启")).catch(() => alert("权限请求失败"));
-  } else {
-    alert("该设备无需单独授权或浏览器不支持。");
-  }
-}
 
 function getMaxStreak() {
   return Math.max(0, ...state.habits.map((habit) => {
@@ -1074,6 +1097,28 @@ function getRecentDays(count) {
     date.setDate(date.getDate() - (count - index - 1));
     return date;
   });
+}
+
+function getCurrentMonthDays() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, i) => new Date(y, m, i + 1));
+}
+
+function getCurrentYearDays() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const start = new Date(y, 0, 1);
+  const end = new Date(y, 11, 31);
+  const days = [];
+  const c = new Date(start);
+  while (c <= end) {
+    days.push(new Date(c));
+    c.setDate(c.getDate() + 1);
+  }
+  return days;
 }
 
 function getCurrentWeekDays() {
