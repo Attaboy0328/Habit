@@ -180,34 +180,32 @@ const elements = {
   todayLabel: document.querySelector("#todayLabel"),
   welcomeSub: document.querySelector("#welcomeSub"),
   todayProgress: document.querySelector("#todayProgress"),
-  progressRate: document.querySelector("#progressRate"),
-  progressBarFill: document.querySelector("#progressBarFill"),
-  progressMessage: document.querySelector("#progressMessage"),
   streakSummary: document.querySelector("#streakSummary"),
   habitList: document.querySelector("#habitList"),
   categoryTabs: document.querySelector("#categoryTabs"),
   presetSections: document.querySelector("#presetSections"),
   addCustomHabit: document.querySelector("#addCustomHabit"),
   habitItemTemplate: document.querySelector("#habitItemTemplate"),
-  rangeBtns: Array.from(document.querySelectorAll("[data-range]")),
   timerModeBtns: Array.from(document.querySelectorAll("[data-timer-mode]")),
   timerPanels: Array.from(document.querySelectorAll(".timer-panel")),
   unifiedTimerDisplay: document.querySelector("#unifiedTimerDisplay"),
   pomoControls: document.querySelector("#pomoControls"),
   stopwatchControls: document.querySelector("#stopwatchControls"),
-  overallHeatmapTitle: document.querySelector("#overallHeatmapTitle"),
-  overallHeatmapHint: document.querySelector("#overallHeatmapHint"),
-  focusHabitTitle: document.querySelector("#focusHabitTitle"),
-  focusHabitMeta: document.querySelector("#focusHabitMeta"),
-  weekRangeLabel: document.querySelector("#weekRangeLabel"),
-  weekStrip: document.querySelector("#weekStrip"),
-  overallHeatmap: document.querySelector("#overallHeatmap"),
-  statDaysDone: document.querySelector("#statDaysDone"),
-  statRate2: document.querySelector("#statRate2"),
-  statRate: document.querySelector("#statRate"),
+  statDays: document.querySelector("#statDays"),
   statCheckins: document.querySelector("#statCheckins"),
-  statActiveHabits: document.querySelector("#statActiveHabits"),
-  statStreak: document.querySelector("#statStreak"),
+  statPersist: document.querySelector("#statPersist"),
+  statStartDate: document.querySelector("#statStartDate"),
+  weekRangeLabel: document.querySelector("#weekRangeLabel"),
+  weekPrevBtn: document.querySelector("#weekPrevBtn"),
+  weekNextBtn: document.querySelector("#weekNextBtn"),
+  weekCircleRow: document.querySelector("#weekCircleRow"),
+  yearPrevBtn: document.querySelector("#yearPrevBtn"),
+  yearNextBtn: document.querySelector("#yearNextBtn"),
+  yearLabel: document.querySelector("#yearLabel"),
+  yearMonthLabels: document.querySelector("#yearMonthLabels"),
+  yearHeatmapGrid: document.querySelector("#yearHeatmapGrid"),
+  yearDoneDays: document.querySelector("#yearDoneDays"),
+  yearRate: document.querySelector("#yearRate"),
   timerStart: document.querySelector("#timerStart"),
   timerPause: document.querySelector("#timerPause"),
   timerReset: document.querySelector("#timerReset"),
@@ -238,7 +236,8 @@ let soundContext = null;
 const uiState = {
   activeScreen: "home",
   activeCategory: "study",
-  statsRange: "week",
+  statsWeekStart: startOfWeek(new Date()),
+  statsYear: new Date().getFullYear(),
   timerMode: "pomo",
   pomoMinutes: 25,
   pomoLeftSec: 25 * 60,
@@ -267,12 +266,30 @@ function bindEvents() {
     button.addEventListener("click", () => switchScreen(button.dataset.screen || "home"));
   });
 
-  elements.rangeBtns.forEach((button) => {
-    button.addEventListener("click", () => {
-      uiState.statsRange = button.dataset.range || "week";
+  if (elements.weekPrevBtn) {
+    elements.weekPrevBtn.addEventListener("click", () => {
+      uiState.statsWeekStart = addDays(uiState.statsWeekStart, -7);
       renderStats();
     });
-  });
+  }
+  if (elements.weekNextBtn) {
+    elements.weekNextBtn.addEventListener("click", () => {
+      uiState.statsWeekStart = addDays(uiState.statsWeekStart, 7);
+      renderStats();
+    });
+  }
+  if (elements.yearPrevBtn) {
+    elements.yearPrevBtn.addEventListener("click", () => {
+      uiState.statsYear -= 1;
+      renderStats();
+    });
+  }
+  if (elements.yearNextBtn) {
+    elements.yearNextBtn.addEventListener("click", () => {
+      uiState.statsYear += 1;
+      renderStats();
+    });
+  }
 
   elements.timerModeBtns.forEach((button) => {
     button.addEventListener("click", () => {
@@ -336,17 +353,25 @@ function bindEvents() {
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return { habits: [] };
+  if (!raw) return { habits: [], backfill: {} };
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed.habits) ? parsed : { habits: [] };
+    if (!Array.isArray(parsed.habits)) return { habits: [], backfill: {} };
+    return {
+      habits: parsed.habits,
+      backfill: parsed.backfill && typeof parsed.backfill === "object" ? parsed.backfill : {}
+    };
   } catch {
-    return { habits: [] };
+    return { habits: [], backfill: {} };
   }
 }
 
 function migrateState(nextState) {
   let changed = false;
+  if (!nextState.backfill || typeof nextState.backfill !== "object") {
+    nextState.backfill = {};
+    changed = true;
+  }
   const updates = {
     pomodoro: { name: "专注" },
     "toilet-water": { name: "排便", goal: "记录规律", icon: "🚽" },
@@ -480,7 +505,6 @@ function renderHome() {
   const todayKey = formatDateKey(today);
   const doneCount = state.habits.filter((habit) => Boolean(habit.history[todayKey])).length;
   const total = state.habits.length;
-  const rate = total ? Math.round((doneCount / total) * 100) : 0;
 
   elements.todayLabel.textContent = new Intl.DateTimeFormat("zh-CN", {
     month: "long",
@@ -490,9 +514,6 @@ function renderHome() {
 
   elements.welcomeSub.textContent = total === 0 ? "今日任务为空，可从下方添加" : "继续保持，今天也会很稳";
   elements.todayProgress.textContent = `${doneCount}/${total}`;
-  elements.progressRate.textContent = `${rate}%`;
-  elements.progressBarFill.style.width = `${rate}%`;
-  elements.progressMessage.textContent = getProgressMessage(rate, total);
   elements.streakSummary.textContent = `连续 ${getMaxStreak()} 天`;
 
   elements.habitList.innerHTML = "";
@@ -509,8 +530,6 @@ function renderHome() {
     const item = node.querySelector(".habit-item");
     const icon = node.querySelector(".habit-item__icon");
     const title = node.querySelector(".habit-item__title");
-    const goal = node.querySelector(".habit-item__goal");
-    const edit = node.querySelector(".habit-item__edit");
     const remind = node.querySelector(".habit-item__remind");
     const del = node.querySelector(".habit-item__delete");
     const check = node.querySelector(".habit-item__check");
@@ -519,19 +538,10 @@ function renderHome() {
 
     icon.textContent = habit.icon;
     title.textContent = habit.name;
-    goal.textContent = habit.goal;
     item.classList.toggle("is-done", isDone);
     check.classList.toggle("is-done", isDone);
     item.style.background = isDone ? "color-mix(in srgb, var(--accent) 16%, var(--surface-soft))" : "";
     remind.classList.toggle("is-active", remindConf.enabled);
-
-    edit.addEventListener("click", () => {
-      const nextGoal = (window.prompt(`修改「${habit.name}」目标`, habit.goal) || "").trim();
-      if (!nextGoal) return;
-      habit.goal = nextGoal;
-      saveState();
-      renderAll();
-    });
 
     remind.addEventListener("click", () => {
       requestNotificationPermission();
@@ -583,8 +593,6 @@ function renderPresetGrid() {
   PRESET_CATEGORIES.forEach((category) => {
     const section = document.createElement("section");
     section.className = `preset-section${category.id === uiState.activeCategory ? " is-active" : ""}`;
-    const title = document.createElement("h3");
-    title.textContent = category.name;
     const grid = document.createElement("div");
     grid.className = "preset-grid";
 
@@ -597,7 +605,6 @@ function renderPresetGrid() {
       grid.appendChild(button);
     });
 
-    section.appendChild(title);
     section.appendChild(grid);
     elements.presetSections.appendChild(section);
   });
@@ -635,148 +642,168 @@ function addPresetHabit(preset) {
 }
 
 function renderStats() {
-  const focusHabit = state.habits[0] || null;
-  const periodDates =
-    uiState.statsRange === "week"
-      ? getCurrentWeekDays()
-      : uiState.statsRange === "month"
-        ? getCurrentMonthDays()
-        : getCurrentYearDays();
-  const periodKeys = periodDates.map(formatDateKey);
+  const allCounts = getDailyCounts();
+  const dayKeys = Object.keys(allCounts).filter((key) => allCounts[key] > 0);
+  const checkins = Object.values(allCounts).reduce((sum, value) => sum + value, 0);
+  const doneDays = dayKeys.length;
+  const persistDays = getPersistDays(dayKeys);
 
-  let checkins = 0;
-  let activeHabits = 0;
+  elements.statDays.textContent = String(doneDays);
+  elements.statCheckins.textContent = String(checkins);
+  elements.statPersist.textContent = String(persistDays);
+  elements.statStartDate.textContent = dayKeys.length ? `始于 ${formatLongDate(dayKeys.sort()[0])}` : "始于 --";
 
+  renderWeekCircles(allCounts);
+  renderYearHeatmap(allCounts);
+}
+
+function renderWeekCircles(allCounts) {
+  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(uiState.statsWeekStart, index));
+  elements.weekRangeLabel.textContent = `${formatShort(weekDays[0])} - ${formatShort(weekDays[6])}`;
+  elements.weekCircleRow.innerHTML = "";
+
+  weekDays.forEach((date) => {
+    const key = formatDateKey(date);
+    const count = allCounts[key] || 0;
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = `week-circle-item${count > 0 ? " is-done" : ""}${count > 1 ? " is-many" : ""}`;
+    item.innerHTML = `
+      <span class="week-circle-item__date">${date.getMonth() + 1}/${date.getDate()}</span>
+      <span class="week-circle-item__weekday">周${weekdayLabels()[((date.getDay() + 6) % 7)]}</span>
+      <span class="week-circle-item__dot">${count > 1 ? count : count === 1 ? "✓" : "/"}</span>
+    `;
+    item.title = `${key}：${count} 次`;
+    item.addEventListener("click", () => {
+      cycleBackfill(key);
+      renderStats();
+      renderHome();
+    });
+    elements.weekCircleRow.appendChild(item);
+  });
+}
+
+function renderYearHeatmap(allCounts) {
+  elements.yearLabel.textContent = String(uiState.statsYear);
+  elements.yearHeatmapGrid.innerHTML = "";
+  elements.yearMonthLabels.innerHTML = "";
+
+  const { weeks, yearDays } = buildYearWeeks(uiState.statsYear);
+  elements.yearHeatmapGrid.style.setProperty("--week-cols", String(weeks.length));
+  elements.yearMonthLabels.style.setProperty("--week-cols", String(weeks.length));
+
+  weeks.forEach((week, weekIndex) => {
+    week.forEach((date, rowIndex) => {
+      const cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "year-heatmap-cell";
+      cell.style.gridColumn = String(weekIndex + 1);
+      cell.style.gridRow = String(rowIndex + 1);
+
+      if (!date || date.getFullYear() !== uiState.statsYear) {
+        cell.classList.add("is-out");
+      } else {
+        const key = formatDateKey(date);
+        const count = allCounts[key] || 0;
+        if (count > 0 && count <= 1) cell.classList.add("lv1");
+        if (count > 1 && count <= 3) cell.classList.add("lv2");
+        if (count > 3) cell.classList.add("lv3");
+        if (count === 0) cell.classList.add("is-empty");
+        cell.title = `${key}：${count} 次`;
+      }
+
+      elements.yearHeatmapGrid.appendChild(cell);
+    });
+  });
+
+  const monthStarts = getMonthStartColumns(weeks, uiState.statsYear);
+  monthStarts.forEach((col, month) => {
+    const monthNode = document.createElement("span");
+    monthNode.textContent = `${month + 1}月`;
+    monthNode.style.gridColumn = String(col + 1);
+    elements.yearMonthLabels.appendChild(monthNode);
+  });
+
+  const yearKeys = yearDays.map(formatDateKey);
+  const doneDays = yearKeys.filter((key) => (allCounts[key] || 0) > 0).length;
+  const rate = yearDays.length ? Math.round((doneDays / yearDays.length) * 100) : 0;
+  elements.yearDoneDays.textContent = `🏆 ${doneDays} 天`;
+  elements.yearRate.textContent = `🔥 ${rate}%`;
+}
+
+function getDailyCounts() {
+  const counts = {};
   state.habits.forEach((habit) => {
-    let hasAny = false;
-    periodKeys.forEach((key) => {
-      if (habit.history[key]) {
-        checkins += 1;
-        hasAny = true;
+    Object.entries(habit.history || {}).forEach(([key, done]) => {
+      if (!done) return;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+  });
+  Object.entries(state.backfill || {}).forEach(([key, value]) => {
+    const extra = Number(value) || 0;
+    if (extra <= 0) return;
+    counts[key] = (counts[key] || 0) + extra;
+  });
+  return counts;
+}
+
+function getBaseHabitCountByDate(dateKey) {
+  return state.habits.reduce((sum, habit) => sum + (habit.history[dateKey] ? 1 : 0), 0);
+}
+
+function cycleBackfill(dateKey) {
+  const current = Number(state.backfill?.[dateKey] || 0);
+  const next = (current + 1) % 3;
+  if (next === 0) {
+    delete state.backfill[dateKey];
+  } else {
+    state.backfill[dateKey] = next;
+  }
+  if (getBaseHabitCountByDate(dateKey) > 0 && next === 0) {
+    delete state.backfill[dateKey];
+  }
+  saveState();
+}
+
+function getPersistDays(dayKeys) {
+  if (!dayKeys.length) return 0;
+  const first = new Date(dayKeys.sort()[0]);
+  const today = new Date();
+  return Math.max(1, Math.floor((today - first) / 86400000) + 1);
+}
+
+function buildYearWeeks(year) {
+  const firstDay = new Date(year, 0, 1);
+  const lastDay = new Date(year, 11, 31);
+  const start = addDays(firstDay, -firstDay.getDay());
+  const end = addDays(lastDay, 6 - lastDay.getDay());
+  const weeks = [];
+  const yearDays = [];
+
+  for (let cursor = new Date(start); cursor <= end; cursor = addDays(cursor, 1)) {
+    const weekIndex = Math.floor((cursor - start) / (7 * 86400000));
+    const dayIndex = cursor.getDay();
+    if (!weeks[weekIndex]) weeks[weekIndex] = Array(7).fill(null);
+    const date = new Date(cursor);
+    weeks[weekIndex][dayIndex] = date;
+    if (date.getFullYear() === year) yearDays.push(date);
+  }
+
+  return { weeks, yearDays };
+}
+
+function getMonthStartColumns(weeks, year) {
+  const map = new Map();
+  weeks.forEach((week, weekIndex) => {
+    week.forEach((date) => {
+      if (!date || date.getFullYear() !== year) return;
+      const month = date.getMonth();
+      if (!map.has(month) && date.getDate() <= 7) {
+        map.set(month, weekIndex);
       }
     });
-    if (hasAny) activeHabits += 1;
   });
-
-  const totalSlots = Math.max(1, state.habits.length * periodKeys.length);
-  const rate = Math.round((checkins / totalSlots) * 100);
-
-  elements.statRate.textContent = `${rate}%`;
-  elements.statCheckins.textContent = String(checkins);
-  elements.statActiveHabits.textContent = String(activeHabits);
-  elements.statStreak.textContent = String(getMaxStreak());
-  elements.statDaysDone.textContent = `🏆 ${countDoneDays(focusHabit)} 天`;
-  elements.statRate2.textContent = `🔥 ${rate}%`;
-  elements.focusHabitTitle.textContent = focusHabit ? `${focusHabit.icon} ${focusHabit.name}` : "习惯统计";
-  elements.focusHabitMeta.textContent = focusHabit ? focusHabit.goal : "添加习惯后可查看";
-
-  elements.rangeBtns.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.range === uiState.statsRange);
-  });
-
-  if (uiState.statsRange === "week") {
-    elements.overallHeatmapTitle.textContent = "周热力图";
-    elements.overallHeatmapHint.textContent = "展示本周每天完成情况";
-  } else if (uiState.statsRange === "month") {
-    elements.overallHeatmapTitle.textContent = "月热力图";
-    elements.overallHeatmapHint.textContent = "展示本月每天完成情况";
-  } else {
-    elements.overallHeatmapTitle.textContent = "年热力图";
-    elements.overallHeatmapHint.textContent = "按月份查看当年完成分布";
-  }
-
-  renderWeekStrip(focusHabit);
-  renderOverallHeatmap(focusHabit);
-}
-
-function renderWeekStrip(focusHabit) {
-  const week = getCurrentWeekDays();
-  elements.weekRangeLabel.textContent = `${formatShort(week[0])}-${formatShort(week[6])}`;
-  elements.weekStrip.innerHTML = "";
-  week.forEach((day) => {
-    const key = formatDateKey(day);
-    const done = focusHabit ? Boolean(focusHabit.history[key]) : false;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = `week-strip__day${done ? " is-done" : ""}`;
-    btn.innerHTML = `<span>周${weekdayLabels()[((day.getDay() + 6) % 7)]}</span><strong>${day.getMonth() + 1}/${day.getDate()}</strong><em>${done ? "✓" : "·"}</em>`;
-    if (focusHabit) {
-      btn.addEventListener("click", () => {
-        if (focusHabit.history[key]) delete focusHabit.history[key];
-        else focusHabit.history[key] = true;
-        saveState();
-        renderStats();
-        renderHome();
-      });
-    } else {
-      btn.disabled = true;
-    }
-    elements.weekStrip.appendChild(btn);
-  });
-}
-
-function renderOverallHeatmap(focusHabit) {
-  elements.overallHeatmap.innerHTML = "";
-
-  if (uiState.statsRange === "week") {
-    const week = getCurrentWeekDays();
-    renderHeatRangeBlock(week, `本周 ${formatShort(week[0])}-${formatShort(week[6])}`, false, focusHabit);
-    return;
-  }
-
-  if (uiState.statsRange === "month") {
-    const monthDays = getCurrentMonthDays();
-    const d = new Date();
-    renderHeatRangeBlock(monthDays, `${d.getMonth() + 1}月 ${d.getFullYear()}`, false, focusHabit);
-    return;
-  }
-
-  for (let month = 0; month < 12; month += 1) {
-    const year = new Date().getFullYear();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const days = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1));
-    renderHeatRangeBlock(days, `${month + 1}月`, true, focusHabit);
-  }
-}
-
-function renderHeatRangeBlock(days, label, compact, focusHabit) {
-  const block = document.createElement("article");
-  block.className = "range-block";
-  const heading = document.createElement("h4");
-  heading.textContent = label;
-  const weekday = document.createElement("div");
-  weekday.className = "range-weekdays";
-  weekday.innerHTML = `<span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>`;
-  const grid = document.createElement("div");
-  grid.className = compact ? "range-grid compact" : "range-grid";
-
-  const first = days[0];
-  const firstOffset = first ? (first.getDay() + 6) % 7 : 0;
-  const maxCells = 42;
-  for (let i = 0; i < maxCells; i += 1) {
-    const cell = document.createElement("div");
-    cell.className = "heat-cell";
-
-    const dayIndex = i - firstOffset;
-    if (dayIndex >= 0 && dayIndex < days.length) {
-      const date = days[dayIndex];
-      const key = formatDateKey(date);
-      const count = focusHabit ? (focusHabit.history[key] ? 1 : 0) : state.habits.filter((habit) => habit.history[key]).length;
-      if (count > 0 && count <= 2) cell.classList.add("lv1");
-      if (count > 2 && count <= 4) cell.classList.add("lv2");
-      if (count > 4) cell.classList.add("lv3");
-      cell.title = `${formatDateKey(date)}：${count} 次`;
-      if (!compact) cell.textContent = String(date.getDate());
-      if (count === 0) cell.classList.add("is-empty");
-    }
-
-    grid.appendChild(cell);
-  }
-
-  block.appendChild(heading);
-  block.appendChild(weekday);
-  block.appendChild(grid);
-  elements.overallHeatmap.appendChild(block);
+  return map;
 }
 
 function renderTimerMode() {
@@ -1079,19 +1106,6 @@ function getMaxStreak() {
   }));
 }
 
-function countDoneDays(habit) {
-  if (!habit) return 0;
-  return Object.keys(habit.history || {}).length;
-}
-
-function getProgressMessage(rate, total) {
-  if (total === 0) return "先从下方添加你要坚持的习惯。";
-  if (rate === 100) return "今天全完成，太棒了。";
-  if (rate >= 60) return "进度过半，再冲一下。";
-  if (rate > 0) return "已经有进展，继续保持。";
-  return "从最容易的一项开始。";
-}
-
 function getRecentDays(count) {
   return Array.from({ length: count }, (_, index) => {
     const date = new Date();
@@ -1143,6 +1157,23 @@ function formatDateKey(date) {
 
 function formatShort(date) {
   return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function formatLongDate(dateKey) {
+  const date = new Date(dateKey);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function startOfWeek(date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return addDays(copy, -copy.getDay());
 }
 
 function weekdayLabels() {

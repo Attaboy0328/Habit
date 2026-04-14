@@ -30,15 +30,6 @@
           <div id="habitList" class="habit-list"></div>
         </section>
 
-        <section class="card card--progress-compact">
-          <div class="card__head">
-            <h2>今日进度</h2>
-            <strong id="progressRate">0%</strong>
-          </div>
-          <div class="progress-track"><div id="progressBarFill" class="progress-fill"></div></div>
-          <p class="card__hint" id="progressMessage">先从一件小事开始。</p>
-        </section>
-
         <section class="card">
           <div class="card__head">
             <h2>快速添加习惯</h2>
@@ -50,13 +41,6 @@
       </section>
 
       <section class="screen" data-screen="timer">
-        <header class="topbar">
-          <div>
-            <p class="topbar__label">专注时钟</p>
-            <h1>计时</h1>
-          </div>
-        </header>
-
         <section class="card timer-card timer-panel is-active" data-timer-panel="pomo">
           <div class="card__head">
             <h2>专注计时</h2>
@@ -106,64 +90,66 @@
       </section>
 
       <section class="screen" data-screen="stats">
-        <header class="topbar">
-          <div>
-            <p class="topbar__label">复盘中心</p>
-            <h1>统计</h1>
-          </div>
-          <div class="segmented" role="tablist" aria-label="统计周期">
-            <button class="segmented__btn is-active" data-range="week" type="button">周</button>
-            <button class="segmented__btn" data-range="month" type="button">月</button>
-            <button class="segmented__btn" data-range="year" type="button">年</button>
-          </div>
-        </header>
+        <section class="stats-panel">
+          <section class="stats-basic card">
+            <article class="stats-basic__cell">
+              <p>打卡天数</p>
+              <strong id="statDays">0</strong>
+              <span>天</span>
+            </article>
+            <article class="stats-basic__cell">
+              <p>打卡次数</p>
+              <strong id="statCheckins">0</strong>
+              <span>次</span>
+            </article>
+            <article class="stats-basic__cell stats-basic__cell--wide">
+              <div>
+                <p>习惯已坚持</p>
+                <strong id="statPersist">0</strong>
+                <span>天</span>
+              </div>
+              <small id="statStartDate">始于 --</small>
+            </article>
+          </section>
 
-        <section class="stats-grid">
-          <article class="mini-card mini-card--hero">
-            <p>连续天数</p>
-            <strong id="statStreak">0</strong>
-          </article>
-          <article class="mini-card"><p>完成率</p><strong id="statRate">0%</strong></article>
-          <article class="mini-card"><p>打卡次数</p><strong id="statCheckins">0</strong></article>
-          <article class="mini-card"><p>活跃习惯数</p><strong id="statActiveHabits">0</strong></article>
-        </section>
+          <section class="stats-week card">
+            <div class="stats-week__head">
+              <h2>每周</h2>
+              <div class="week-switch">
+                <button id="weekPrevBtn" type="button" aria-label="上一周">‹</button>
+                <span id="weekRangeLabel">本周</span>
+                <button id="weekNextBtn" type="button" aria-label="下一周">›</button>
+              </div>
+            </div>
+            <div id="weekCircleRow" class="week-circle-row"></div>
+            <p class="week-note">点按圆形可补卡（循环：/ → ✓ → 2）</p>
+          </section>
 
-        <section class="card">
-          <div class="card__head card__head--stack">
-            <div>
-              <h2 id="focusHabitTitle">习惯统计</h2>
-              <p class="subtle" id="focusHabitMeta">选择一个习惯查看热力图</p>
+          <section class="stats-year card">
+            <div class="stats-year__head">
+              <h2>全年</h2>
+              <div class="year-switch">
+                <button id="yearPrevBtn" type="button" aria-label="上一年">‹</button>
+                <strong id="yearLabel">2026</strong>
+                <button id="yearNextBtn" type="button" aria-label="下一年">›</button>
+              </div>
             </div>
-          </div>
-          <article class="week-strip-card">
-            <div class="week-strip-head">
-              <h3>每周</h3>
-              <span id="weekRangeLabel">本周</span>
+            <div class="year-heatmap-shell">
+              <div class="year-weekday-axis"><span>日</span><span>六</span></div>
+              <div class="year-heatmap-main">
+                <div id="yearMonthLabels" class="year-month-labels"></div>
+                <div id="yearHeatmapGrid" class="year-heatmap-grid"></div>
+              </div>
             </div>
-            <div id="weekStrip" class="week-strip"></div>
-          </article>
-          <div class="card__head card__head--stack">
-            <div>
-              <h2 id="overallHeatmapTitle">全年热力图</h2>
-              <p class="subtle" id="overallHeatmapHint">按颜色查看坚持强度</p>
+            <div class="year-foot">
+              <span id="yearDoneDays">🏆 0 天</span>
+              <span id="yearRate">🔥 0%</span>
             </div>
-          </div>
-          <div class="overall-heatmap" id="overallHeatmap"></div>
-          <div class="stat-foot">
-            <span id="statDaysDone">🏆 0 天</span>
-            <span id="statRate2">🔥 0%</span>
-          </div>
+          </section>
         </section>
       </section>
 
       <section class="screen" data-screen="settings">
-        <header class="topbar">
-          <div>
-            <p class="topbar__label">个性化</p>
-            <h1>设置</h1>
-          </div>
-        </header>
-
         <section class="card">
           <div class="card__head card__head--stack">
             <div>
@@ -232,11 +218,9 @@
         <span class="habit-item__icon"></span>
         <div>
           <h3 class="habit-item__title"></h3>
-          <p class="habit-item__goal"></p>
         </div>
       </div>
       <div class="habit-item__actions">
-        <button class="habit-item__edit" type="button" aria-label="编辑目标">改</button>
         <button class="habit-item__remind" type="button" aria-label="提醒设置">⏰</button>
         <button class="habit-item__delete" type="button" aria-label="删除习惯">删</button>
         <button class="habit-item__check" type="button" aria-label="打卡"></button>
