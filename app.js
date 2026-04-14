@@ -70,7 +70,7 @@ function makeThemePalette({
 
 const THEME_PALETTES = [
   makeThemePalette({ id: "jade", name: "松石绿", swatch: "#087c68", accent: "#087c68", strong: "#075d52", deep: "#075d52", deeper: "#04483f", soft: "#dff3ec", bg: "#f3faf6", surfaceSoft: "#ecf6f1", highlight: "#f4e887", rgb: "7, 93, 82", orb: "rgba(190, 240, 225, 0.78)", warm: "rgba(246, 241, 197, 0.52)" }),
-  makeThemePalette({ id: "sakura", name: "樱花粉", swatch: "#e9a8bb", accent: "#d98aa4", strong: "#b86580", deep: "#7f4058", deeper: "#5d2d42", soft: "#fde8ef", bg: "#fff7f9", surfaceSoft: "#fbeef2", highlight: "#f8dc8c", rgb: "184, 101, 128", orb: "rgba(250, 211, 223, 0.82)", warm: "rgba(255, 232, 209, 0.54)" }),
+  makeThemePalette({ id: "sakura", name: "樱花粉", swatch: "#e9a8bb", accent: "#df8ea8", strong: "#c16f8d", deep: "#a84f72", deeper: "#843653", soft: "#fde8ef", bg: "#fff7f9", surfaceSoft: "#fbeef2", highlight: "#f8d987", rgb: "193, 111, 141", orb: "rgba(250, 211, 223, 0.82)", warm: "rgba(255, 232, 209, 0.54)" }),
   makeThemePalette({ id: "rose", name: "豆沙玫瑰", swatch: "#c98f9f", accent: "#bd7d91", strong: "#9a6073", deep: "#75475a", deeper: "#563343", soft: "#f5e3e8", bg: "#fcf6f7", surfaceSoft: "#f3e9ec", highlight: "#f3d38a", rgb: "154, 96, 115", orb: "rgba(231, 196, 205, 0.76)", warm: "rgba(245, 223, 195, 0.48)" }),
   makeThemePalette({ id: "coral", name: "雾珊瑚", swatch: "#d6907f", accent: "#cf806b", strong: "#a96050", deep: "#7b4037", deeper: "#5a2e29", soft: "#f8e4df", bg: "#fff8f5", surfaceSoft: "#f6ebe6", highlight: "#f4dd91", rgb: "169, 96, 80", orb: "rgba(241, 199, 189, 0.78)", warm: "rgba(254, 229, 190, 0.52)" }),
   makeThemePalette({ id: "clay", name: "陶土橙", swatch: "#c98d67", accent: "#c68055", strong: "#9d6240", deep: "#754a32", deeper: "#543424", soft: "#f4e4d8", bg: "#fbf6ef", surfaceSoft: "#f2eadf", highlight: "#e7d77c", rgb: "157, 98, 64", orb: "rgba(225, 190, 163, 0.74)", warm: "rgba(245, 228, 178, 0.52)" }),
@@ -151,12 +151,10 @@ const PRESET_HABITS = [
   { id: "laundry", name: "洗衣", goal: "及时清洗", icon: "🫧", category: "life" },
   { id: "shower", name: "洗澡", goal: "睡前清洁", icon: "🚿", category: "life" },
   { id: "hair", name: "洗头", goal: "规律清洁", icon: "🧼", category: "life" },
-  { id: "phone", name: "少刷短视频", goal: "控制 30 分钟", icon: "📱", category: "life" },
-  { id: "toilet-water", name: "饮水排便规律", goal: "记录日常", icon: "🗒️", category: "life" },
+  { id: "toilet-water", name: "排便", goal: "记录规律", icon: "🚽", category: "life" },
   { id: "cook", name: "做饭", goal: "至少一餐", icon: "🍳", category: "life" },
   { id: "family", name: "陪伴家人", goal: "30 分钟", icon: "👨‍👩‍👧", category: "life" },
-  { id: "pomodoro", name: "番茄钟专注", goal: "4 轮专注", icon: "🍅", category: "work" },
-  { id: "task", name: "完成任务清单", goal: "清空待办", icon: "✅", category: "work" },
+  { id: "pomodoro", name: "专注", goal: "4 轮专注", icon: "🍅", category: "work" },
   { id: "no-delay", name: "不拖延", goal: "今日事今日毕", icon: "⏱️", category: "work" },
   { id: "mail", name: "处理邮件", goal: "清空重要邮件", icon: "📩", category: "work" },
   { id: "meeting", name: "会议纪要", goal: "会后 10 分钟内完成", icon: "🗒️", category: "work" },
@@ -172,7 +170,7 @@ const PRESET_HABITS = [
   { id: "night-review", name: "睡前复盘", goal: "记录 3 条总结", icon: "🌃", category: "ritual" },
   { id: "eye-warm", name: "眼部热敷", goal: "10 分钟", icon: "🫶", category: "health" },
   { id: "slow-eat", name: "慢食咀嚼", goal: "每口咀嚼 20 次", icon: "🥗", category: "health" },
-  { id: "self-praise", name: "夸奖自己一次", goal: "写下 1 条肯定", icon: "🌟", category: "mind" },
+  { id: "self-praise", name: "夸奖自己", goal: "写下 1 条肯定", icon: "🌟", category: "mind" },
   { id: "mind-3min", name: "3分钟冥想", goal: "静坐 3 分钟", icon: "🧠", category: "mind" }
 ];
 
@@ -213,10 +211,8 @@ const elements = {
   timerStart: document.querySelector("#timerStart"),
   timerPause: document.querySelector("#timerPause"),
   timerReset: document.querySelector("#timerReset"),
-  pomoApply: document.querySelector("#pomoApply"),
-  pomoMinus: document.querySelector("#pomoMinus"),
-  pomoPlus: document.querySelector("#pomoPlus"),
   pomoCustomMinutes: document.querySelector("#pomoCustomMinutes"),
+  pomoCustomValue: document.querySelector("#pomoCustomValue"),
   ringtoneSelect: document.querySelector("#ringtoneSelect"),
   ringtonePreviewBtn: document.querySelector("#ringtonePreviewBtn"),
   pomoQuickBtns: Array.from(document.querySelectorAll("[data-pomo-minutes]")),
@@ -234,7 +230,7 @@ const elements = {
   privacyFallbackBtn: document.querySelector("#privacyFallbackBtn")
 };
 
-const state = loadState();
+const state = migrateState(loadState());
 const settings = loadSettings();
 const reminderState = loadReminders();
 let soundContext = null;
@@ -291,11 +287,9 @@ function bindEvents() {
     });
   });
 
-  elements.pomoApply.addEventListener("click", () => {
+  elements.pomoCustomMinutes.addEventListener("input", () => {
     applyPomodoroMinutes(Number(elements.pomoCustomMinutes.value || 25));
   });
-  elements.pomoMinus.addEventListener("click", () => applyPomodoroMinutes(uiState.pomoMinutes - 1));
-  elements.pomoPlus.addEventListener("click", () => applyPomodoroMinutes(uiState.pomoMinutes + 1));
   elements.ringtoneSelect.addEventListener("change", () => {
     saveSettings();
     playRingtone(settings.ringtone, 1.2);
@@ -349,6 +343,29 @@ function loadState() {
   } catch {
     return { habits: [] };
   }
+}
+
+function migrateState(nextState) {
+  let changed = false;
+  const updates = {
+    pomodoro: { name: "专注" },
+    "toilet-water": { name: "排便", goal: "记录规律", icon: "🚽" },
+    "self-praise": { name: "夸奖自己" }
+  };
+
+  nextState.habits.forEach((habit) => {
+    const update = updates[habit.id];
+    if (!update) return;
+    Object.entries(update).forEach(([key, value]) => {
+      if (habit[key] !== value) {
+        habit[key] = value;
+        changed = true;
+      }
+    });
+  });
+
+  if (changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+  return nextState;
 }
 
 function loadSettings() {
@@ -767,7 +784,6 @@ function renderTimerMode() {
     button.classList.toggle("is-active", button.dataset.timerMode === uiState.timerMode);
   });
   elements.pomoControls.classList.toggle("is-hidden", uiState.timerMode !== "pomo");
-  elements.pomoMinus.closest(".time-stepper").classList.toggle("is-hidden", uiState.timerMode !== "pomo");
   elements.pomoCustomMinutes.closest(".time-input-row").classList.toggle("is-hidden", uiState.timerMode !== "pomo");
   elements.ringtoneSelect.closest(".time-input-row").classList.toggle("is-hidden", uiState.timerMode !== "pomo");
   elements.ringtonePreviewBtn.classList.toggle("is-hidden", uiState.timerMode !== "pomo");
@@ -782,6 +798,7 @@ function applyPomodoroMinutes(minutes) {
   uiState.pomoMinutes = safe;
   uiState.pomoLeftSec = safe * 60;
   elements.pomoCustomMinutes.value = String(safe);
+  elements.pomoCustomValue.textContent = `${safe}m`;
   pausePomodoro();
   renderPomodoro();
 }
@@ -811,6 +828,11 @@ function renderPomodoro() {
   const min = Math.floor(uiState.pomoLeftSec / 60);
   const sec = uiState.pomoLeftSec % 60;
   elements.unifiedTimerDisplay.textContent = `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  elements.pomoCustomMinutes.value = String(uiState.pomoMinutes);
+  elements.pomoCustomValue.textContent = `${uiState.pomoMinutes}m`;
+  elements.pomoQuickBtns.forEach((button) => {
+    button.classList.toggle("is-active", Number(button.dataset.pomoMinutes) === uiState.pomoMinutes);
+  });
 }
 
 function playRingtone(type, seconds = 1.8) {

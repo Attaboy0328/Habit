@@ -75,15 +75,12 @@
             </div>
           </div>
           <div id="stopwatchControls" class="is-hidden"></div>
-          <div class="time-stepper">
-            <button id="pomoMinus" type="button" class="step-btn" aria-label="减少1分钟">-1m</button>
-            <span>快速微调</span>
-            <button id="pomoPlus" type="button" class="step-btn" aria-label="增加1分钟">+1m</button>
-          </div>
-          <div class="time-input-row">
-            <label>自定义分钟</label>
-            <input id="pomoCustomMinutes" type="number" min="1" max="180" value="25">
-            <button id="pomoApply" type="button" class="btn-ghost">应用</button>
+          <div class="time-input-row time-input-row--slider">
+            <div class="slider-head">
+              <label for="pomoCustomMinutes">专注时长</label>
+              <strong id="pomoCustomValue">25m</strong>
+            </div>
+            <input id="pomoCustomMinutes" type="range" min="1" max="180" value="25" step="1">
           </div>
           <div class="time-input-row time-input-row--ring">
             <label>结束铃声（支持试听）</label>
