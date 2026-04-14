@@ -82,7 +82,8 @@ const elements = {
   streakSummary: document.querySelector("#streakSummary"),
   habitList: document.querySelector("#habitList"),
   categoryTabs: document.querySelector("#categoryTabs"),
-  presetGrid: document.querySelector("#presetGrid"),
+  presetSections: document.querySelector("#presetSections"),
+  addCustomHabit: document.querySelector("#addCustomHabit"),
   habitItemTemplate: document.querySelector("#habitItemTemplate"),
   rangeBtns: Array.from(document.querySelectorAll("[data-range]")),
   timerModeBtns: Array.from(document.querySelectorAll("[data-timer-mode]")),
@@ -91,6 +92,7 @@ const elements = {
   overallHeatmapHint: document.querySelector("#overallHeatmapHint"),
   overallDateAxis: document.querySelector("#overallDateAxis"),
   overallHeatmap: document.querySelector("#overallHeatmap"),
+  habitCompare: document.querySelector("#habitCompare"),
   habitCountList: document.querySelector("#habitCountList"),
   statRate: document.querySelector("#statRate"),
   statCheckins: document.querySelector("#statCheckins"),
@@ -101,8 +103,12 @@ const elements = {
   pomoPause: document.querySelector("#pomoPause"),
   pomoReset: document.querySelector("#pomoReset"),
   pomoApply: document.querySelector("#pomoApply"),
+  immerseToggle: document.querySelector("#immerseToggle"),
+  pomoMinus: document.querySelector("#pomoMinus"),
+  pomoPlus: document.querySelector("#pomoPlus"),
   pomoCustomMinutes: document.querySelector("#pomoCustomMinutes"),
   ringtoneSelect: document.querySelector("#ringtoneSelect"),
+  ringtonePreviewBtns: Array.from(document.querySelectorAll("[data-ringtone-preview]")),
   pomoQuickBtns: Array.from(document.querySelectorAll("[data-pomo-minutes]")),
   stopwatchDisplay: document.querySelector("#stopwatchDisplay"),
   swStart: document.querySelector("#swStart"),
@@ -120,6 +126,7 @@ const uiState = {
   activeCategory: "study",
   statsRange: "week",
   timerMode: "pomo",
+  immersiveTimer: false,
   pomoMinutes: 25,
   pomoLeftSec: 25 * 60,
   pomoTimer: null,
@@ -166,6 +173,22 @@ function bindEvents() {
   elements.pomoApply.addEventListener("click", () => {
     applyPomodoroMinutes(Number(elements.pomoCustomMinutes.value || 25));
   });
+  elements.pomoMinus.addEventListener("click", () => applyPomodoroMinutes(uiState.pomoMinutes - 1));
+  elements.pomoPlus.addEventListener("click", () => applyPomodoroMinutes(uiState.pomoMinutes + 1));
+  elements.immerseToggle.addEventListener("click", () => {
+    uiState.immersiveTimer = !uiState.immersiveTimer;
+    renderImmersiveTimer();
+  });
+  elements.ringtoneSelect.addEventListener("change", () => {
+    saveSettings();
+    playRingtone(settings.ringtone, 1.2);
+  });
+  elements.ringtonePreviewBtns.forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.ringtonePreview || "soft";
+      playRingtone(key, 1.2);
+    });
+  });
 
   elements.pomoStart.addEventListener("click", startPomodoro);
   elements.pomoPause.addEventListener("click", pausePomodoro);
@@ -188,6 +211,7 @@ function bindEvents() {
     saveSettings();
     applySettings();
   });
+  elements.addCustomHabit.addEventListener("click", addCustomHabit);
 }
 
 function loadState() {
@@ -267,6 +291,7 @@ function renderAll() {
   renderPomodoro();
   renderStopwatch();
   renderTimerMode();
+  renderImmersiveTimer();
 }
 
 function renderNav() {
@@ -281,6 +306,7 @@ function renderNav() {
 function switchScreen(screen) {
   uiState.activeScreen = screen;
   renderNav();
+  renderImmersiveTimer();
 }
 
 function renderHome() {
@@ -355,15 +381,49 @@ function renderPresetGrid() {
     btn.classList.toggle("is-active", btn.textContent === PRESET_CATEGORIES.find((c) => c.id === uiState.activeCategory)?.name);
   });
 
-  elements.presetGrid.innerHTML = "";
-  PRESET_HABITS.filter((item) => item.category === uiState.activeCategory).forEach((preset) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "preset-chip";
-    button.innerHTML = `<span>${preset.icon}</span><span>${preset.name}</span>`;
-    button.addEventListener("click", () => addPresetHabit(preset));
-    elements.presetGrid.appendChild(button);
+  elements.presetSections.innerHTML = "";
+  PRESET_CATEGORIES.forEach((category) => {
+    const section = document.createElement("section");
+    section.className = `preset-section${category.id === uiState.activeCategory ? " is-active" : ""}`;
+    const title = document.createElement("h3");
+    title.textContent = category.name;
+    const grid = document.createElement("div");
+    grid.className = "preset-grid";
+
+    PRESET_HABITS.filter((item) => item.category === category.id).forEach((preset) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "preset-chip";
+      button.innerHTML = `<span>${preset.icon}</span><span>${preset.name}</span>`;
+      button.addEventListener("click", () => addPresetHabit(preset));
+      grid.appendChild(button);
+    });
+
+    section.appendChild(title);
+    section.appendChild(grid);
+    elements.presetSections.appendChild(section);
   });
+}
+
+function addCustomHabit() {
+  const name = (window.prompt("习惯名称（例如：晚间拉伸）") || "").trim();
+  if (!name) return;
+  const goal = (window.prompt("目标描述（例如：15 分钟）") || "").trim();
+  const icon = (window.prompt("图标（输入emoji，例如 ✅）") || "✨").trim() || "✨";
+  state.habits.unshift({
+    id: `custom-${Date.now()}`,
+    name,
+    goal: goal || "自定义目标",
+    icon,
+    history: {}
+  });
+  saveState();
+  renderAll();
+}
+
+function renderImmersiveTimer() {
+  document.body.classList.toggle("timer-immersive", uiState.immersiveTimer && uiState.activeScreen === "timer");
+  elements.immerseToggle.textContent = `沉浸模式：${uiState.immersiveTimer ? "开" : "关"}`;
 }
 
 function addPresetHabit(preset) {
@@ -424,8 +484,39 @@ function renderStats() {
   }
 
   renderDateAxis(periodDates);
-  renderHabitCounts(periodKeys);
   renderOverallHeatmap();
+  renderHabitCompare(periodKeys);
+  renderHabitCounts(periodKeys);
+}
+
+function renderHabitCompare(periodKeys) {
+  elements.habitCompare.innerHTML = "";
+  if (state.habits.length < 2) {
+    elements.habitCompare.innerHTML = '<div class="empty-box">至少添加两个习惯后可查看重合度。</div>';
+    return;
+  }
+
+  let bestPair = null;
+  for (let i = 0; i < state.habits.length; i += 1) {
+    for (let j = i + 1; j < state.habits.length; j += 1) {
+      const a = state.habits[i];
+      const b = state.habits[j];
+      const overlap = periodKeys.reduce((sum, key) => sum + (a.history[key] && b.history[key] ? 1 : 0), 0);
+      if (!bestPair || overlap > bestPair.overlap) {
+        bestPair = { a, b, overlap };
+      }
+    }
+  }
+
+  if (!bestPair) return;
+  const ratio = Math.round((bestPair.overlap / Math.max(1, periodKeys.length)) * 100);
+  elements.habitCompare.innerHTML = `
+    <article class="compare-card">
+      <p>${bestPair.a.icon} ${bestPair.a.name} × ${bestPair.b.icon} ${bestPair.b.name}</p>
+      <strong>${bestPair.overlap} 天重合</strong>
+      <span>重合率 ${ratio}%</span>
+    </article>
+  `;
 }
 
 function renderOverallHeatmap() {
@@ -563,6 +654,7 @@ function startPomodoro() {
       uiState.pomoLeftSec = 0;
       pausePomodoro();
       playRingtone(settings.ringtone);
+      vibrateOnTimerDone();
     }
     renderPomodoro();
   }, 1000);
@@ -580,24 +672,41 @@ function renderPomodoro() {
   elements.pomoDisplay.textContent = `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-function playRingtone(type) {
+function playRingtone(type, seconds = 1.8) {
   if (type === "none") return;
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const sequence = type === "soft" ? [660, 550] : type === "bright" ? [880, 988, 880] : [523, 659, 784];
-  sequence.forEach((freq, index) => {
+  const safeStop = ctx.currentTime + seconds;
+  const addTone = (freq, wave = "sine", gainLevel = 0.08, delay = 0) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.frequency.value = freq;
-    osc.type = "sine";
+    osc.type = wave;
     osc.connect(gain);
     gain.connect(ctx.destination);
-    const start = ctx.currentTime + index * 0.18;
+    const start = ctx.currentTime + delay;
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(0.08, start + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+    gain.gain.exponentialRampToValueAtTime(gainLevel, start + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, safeStop);
     osc.start(start);
-    osc.stop(start + 0.17);
-  });
+    osc.stop(safeStop);
+  };
+
+  if (type === "soft") [660, 550].forEach((f, i) => addTone(f, "sine", 0.07, i * 0.16));
+  else if (type === "bright") [880, 988, 1175].forEach((f, i) => addTone(f, "triangle", 0.09, i * 0.12));
+  else if (type === "chime") [523, 659, 784].forEach((f, i) => addTone(f, "sine", 0.08, i * 0.2));
+  else if (type === "rain") [220, 260, 320].forEach((f, i) => addTone(f, "sine", 0.05, i * 0.05));
+  else if (type === "fire") [130, 170, 210].forEach((f, i) => addTone(f, "square", 0.035, i * 0.08));
+  else if (type === "white") addTone(280, "sawtooth", 0.03, 0);
+  else if (type === "wood") [440, 392, 440].forEach((f, i) => addTone(f, "triangle", 0.06, i * 0.22));
+  else if (type === "bowl") [432, 648].forEach((f, i) => addTone(f, "sine", 0.07, i * 0.35));
+  else if (type === "bird") [1568, 1318, 1760].forEach((f, i) => addTone(f, "triangle", 0.06, i * 0.13));
+  else if (type === "stream") [294, 330, 392].forEach((f, i) => addTone(f, "sine", 0.05, i * 0.2));
+
+  setTimeout(() => ctx.close(), seconds * 1000 + 80);
+}
+
+function vibrateOnTimerDone() {
+  if ("vibrate" in navigator) navigator.vibrate([120, 60, 120, 60, 180]);
 }
 
 function startStopwatch() {

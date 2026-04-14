@@ -31,6 +31,15 @@ body {
     linear-gradient(165deg, var(--bg), color-mix(in srgb, var(--bg) 75%, #fff));
 }
 
+body.timer-immersive {
+  background:
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 42%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 45%),
+    linear-gradient(160deg, var(--bg), color-mix(in srgb, var(--bg) 72%, #fff));
+  background-size: 130% 130%;
+  animation: breatheBg 14s ease-in-out infinite;
+}
+
 button, input, select { font: inherit; }
 button { transition: transform .16s ease, opacity .16s ease, background .2s ease; }
 button:active { transform: scale(0.97); }
@@ -53,6 +62,12 @@ button:active { transform: scale(0.97); }
   0% { transform: scale(1); }
   40% { transform: scale(1.02); }
   100% { transform: scale(1); }
+}
+
+@keyframes breatheBg {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
 }
 
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
@@ -135,8 +150,28 @@ button:active { transform: scale(0.97); }
 .tab-btn { border: 0; border-radius: 999px; padding: 7px 12px; background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--muted); font-weight: 700; }
 .tab-btn.is-active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-strong); }
 
+.preset-sections { display: grid; gap: 8px; }
+.preset-section {
+  display: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 12px;
+  padding: 8px;
+}
+.preset-section.is-active { display: block; }
+.preset-section h3 { margin: 2px 0 8px; font-size: 13px; color: var(--muted); }
 .preset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .preset-chip { border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--text); padding: 9px 10px; display: flex; align-items: center; gap: 8px; justify-content: flex-start; }
+.custom-add-btn {
+  width: 100%;
+  margin-top: 10px;
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent-strong);
+  padding: 11px 12px;
+  font-weight: 700;
+}
 
 .timer-card { background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 8%, var(--surface)), var(--surface)); }
 .timer-panel { display: none; }
@@ -146,12 +181,53 @@ button:active { transform: scale(0.97); }
 .quick-btn { border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); padding: 5px 10px; font-weight: 700; }
 
 .timer-main { text-align: center; font-family: "Outfit", sans-serif; font-size: 46px; letter-spacing: 1px; margin: 8px 0 14px; }
+.immerse-btn {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text);
+  padding: 8px;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+.time-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.step-btn {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+  padding: 5px 10px;
+  font-weight: 700;
+}
 .time-input-row { display: grid; grid-template-columns: 1fr 80px auto; align-items: center; gap: 8px; margin-bottom: 10px; }
 .time-input-row--ring { grid-template-columns: 1fr 1fr; }
 .time-input-row label { color: var(--muted); font-size: 13px; }
 .time-input-row input, .select { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: transparent; color: var(--text); }
 
 .timer-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ringtone-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.ringtone-preview {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--muted);
+  padding: 7px 8px;
+  text-align: left;
+}
 .btn-primary, .btn-ghost { border: 0; border-radius: 10px; padding: 10px 12px; font-weight: 700; }
 .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; }
 .btn-ghost { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); }
@@ -247,6 +323,16 @@ button:active { transform: scale(0.97); }
   display: grid;
   gap: 6px;
 }
+.habit-compare { margin-top: 10px; }
+.compare-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--surface) 90%, transparent));
+}
+.compare-card p { margin: 0; color: var(--muted); font-size: 13px; }
+.compare-card strong { display: block; margin-top: 6px; font-family: "Outfit", sans-serif; font-size: 22px; }
+.compare-card span { color: var(--muted); font-size: 12px; }
 .habit-count-item {
   display: flex;
   align-items: center;
@@ -282,6 +368,20 @@ button:active { transform: scale(0.97); }
 .switch span::before { content: ""; position: absolute; width: 22px; height: 22px; left: 4px; top: 4px; border-radius: 50%; background: #fff; transition: transform .2s ease; }
 .switch input:checked + span { background: color-mix(in srgb, var(--accent) 75%, transparent); }
 .switch input:checked + span::before { transform: translateX(22px); }
+
+.settings-list { display: grid; gap: 8px; }
+.setting-cell {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-soft) 90%, transparent);
+  color: var(--text);
+  text-align: left;
+  padding: 10px 11px;
+  display: grid;
+  gap: 4px;
+}
+.setting-cell span { font-weight: 700; }
+.setting-cell small { color: var(--muted); font-size: 12px; }
 
 .mobile-nav {
   position: fixed;

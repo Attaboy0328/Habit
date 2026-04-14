@@ -46,7 +46,8 @@
             <h2>快速添加习惯</h2>
           </div>
           <div class="category-tabs" id="categoryTabs"></div>
-          <div class="preset-grid" id="presetGrid"></div>
+          <div class="preset-sections" id="presetSections"></div>
+          <button id="addCustomHabit" type="button" class="custom-add-btn">+ 自定义习惯</button>
         </section>
       </section>
 
@@ -72,20 +73,39 @@
               <button type="button" class="quick-btn" data-pomo-minutes="30">30m</button>
             </div>
           </div>
+          <button type="button" id="immerseToggle" class="immerse-btn">沉浸模式：关</button>
           <div class="timer-main" id="pomoDisplay">25:00</div>
+          <div class="time-stepper">
+            <button id="pomoMinus" type="button" class="step-btn" aria-label="减少1分钟">-1m</button>
+            <span>快速微调</span>
+            <button id="pomoPlus" type="button" class="step-btn" aria-label="增加1分钟">+1m</button>
+          </div>
           <div class="time-input-row">
             <label>自定义分钟</label>
             <input id="pomoCustomMinutes" type="number" min="1" max="180" value="25">
             <button id="pomoApply" type="button" class="btn-ghost">应用</button>
           </div>
           <div class="time-input-row time-input-row--ring">
-            <label>结束铃声</label>
+            <label>结束铃声（支持试听）</label>
             <select id="ringtoneSelect" class="select">
               <option value="none">静音</option>
               <option value="soft">轻铃</option>
               <option value="bright">清脆</option>
               <option value="chime">钟声</option>
+              <option value="rain">白噪音·雨声</option>
+              <option value="fire">白噪音·篝火</option>
+              <option value="white">白噪音·纯白</option>
+              <option value="wood">禅意·木鱼</option>
+              <option value="bowl">禅意·颂钵</option>
+              <option value="bird">自然·鸟鸣</option>
+              <option value="stream">自然·溪流</option>
             </select>
+          </div>
+          <div class="ringtone-presets">
+            <button type="button" class="ringtone-preview" data-ringtone-preview="rain">▶ 雨声</button>
+            <button type="button" class="ringtone-preview" data-ringtone-preview="white">▶ 白噪音</button>
+            <button type="button" class="ringtone-preview" data-ringtone-preview="wood">▶ 木鱼</button>
+            <button type="button" class="ringtone-preview" data-ringtone-preview="bird">▶ 鸟鸣</button>
           </div>
           <div class="timer-actions">
             <button id="pomoStart" class="btn-primary" type="button">开始</button>
@@ -139,6 +159,13 @@
           </div>
           <div class="date-axis" id="overallDateAxis"></div>
           <div class="overall-heatmap" id="overallHeatmap"></div>
+          <div class="card__head card__head--stack">
+            <div>
+              <h2>习惯对比洞察</h2>
+              <p class="subtle">按当前周期，展示两个习惯的重合打卡天数</p>
+            </div>
+          </div>
+          <div class="habit-compare" id="habitCompare"></div>
           <div class="habit-count-list" id="habitCountList"></div>
         </section>
       </section>
@@ -172,6 +199,29 @@
               <span></span>
             </label>
           </div>
+        </section>
+
+        <section class="card settings-list">
+          <button type="button" class="setting-cell">
+            <span>提醒管理</span>
+            <small>统一管理所有习惯提醒时间</small>
+          </button>
+          <button type="button" class="setting-cell">
+            <span>备份与同步</span>
+            <small>启用云端同步（即将支持）</small>
+          </button>
+          <button type="button" class="setting-cell">
+            <span>数据导出</span>
+            <small>导出 CSV / PDF 周报（即将支持）</small>
+          </button>
+          <button type="button" class="setting-cell">
+            <span>隐私锁定</span>
+            <small>FaceID / 指纹锁（即将支持）</small>
+          </button>
+          <button type="button" class="setting-cell">
+            <span>专注设置</span>
+            <small>翻转手机即开始计时（即将支持）</small>
+          </button>
         </section>
       </section>
     </main>
