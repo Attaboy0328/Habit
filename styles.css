@@ -1797,3 +1797,301 @@ button {
     font-size: 11px;
   }
 }
+
+/* Reliable week-wall heatmap and per-habit stats */
+.stats-year.is-week-mode .year-month-labels {
+  grid-template-columns: repeat(var(--week-cols, 53), minmax(0, 1fr));
+  column-gap: 1px;
+  height: 16px;
+  margin-bottom: 6px;
+}
+
+.stats-year.is-week-mode .year-month-labels span {
+  min-width: 0;
+  overflow: visible;
+  font-size: 9px;
+  line-height: 1;
+  transform: translateX(-1px);
+}
+
+.stats-year.is-week-mode .year-weekday-axis {
+  grid-template-rows: repeat(7, 6px);
+  gap: 2px;
+  padding-top: 22px;
+}
+
+.stats-year.is-week-mode .year-heatmap-grid {
+  grid-template-columns: repeat(var(--week-cols, 53), minmax(3px, 1fr));
+  grid-template-rows: repeat(7, 6px);
+  gap: 2px;
+}
+
+.stats-year.is-week-mode .year-heatmap-cell {
+  aspect-ratio: auto;
+  height: 6px;
+  min-height: 6px;
+  border-radius: 999px;
+}
+
+.stats-habits {
+  margin-bottom: 0;
+}
+
+.stats-habits__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stats-habits__head h2 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+}
+
+.stats-habits__head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.habit-range-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface-soft));
+  border: 1px solid color-mix(in srgb, var(--accent) 10%, var(--line));
+}
+
+.habit-range-switch button {
+  min-width: 34px;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.habit-range-switch button.is-active {
+  color: var(--accent-strong);
+  background: var(--surface);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.habit-stats-list {
+  display: grid;
+  gap: 12px;
+}
+
+.habit-stat-card {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--habit-color) 20%, var(--line));
+  border-radius: 24px;
+  padding: 14px;
+  text-align: left;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--habit-color) 18%, transparent), transparent 28%),
+    color-mix(in srgb, var(--surface) 90%, var(--surface-soft));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--habit-color) 7%, transparent);
+}
+
+.habit-stat-card.is-expanded {
+  border-color: color-mix(in srgb, var(--habit-color) 44%, var(--line));
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--habit-color) 11%, transparent);
+}
+
+.habit-stat-card__summary {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.78fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.habit-stat-card__title {
+  display: grid;
+  gap: 8px;
+}
+
+.habit-stat-card__title span {
+  font-size: 20px;
+}
+
+.habit-stat-card__title strong {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.habit-stat-card__numbers {
+  display: grid;
+  gap: 7px;
+  color: color-mix(in srgb, var(--muted) 88%, var(--habit-color));
+  font-weight: 800;
+}
+
+.habit-stat-card__numbers b {
+  color: color-mix(in srgb, var(--habit-color) 72%, var(--text));
+  font-family: "Outfit", sans-serif;
+  font-size: 24px;
+  letter-spacing: .04em;
+}
+
+.habit-mini-grid {
+  display: grid;
+  justify-content: end;
+  align-content: center;
+  gap: 5px;
+}
+
+.habit-mini-grid.is-week {
+  grid-template-columns: repeat(7, 22px);
+}
+
+.habit-mini-grid.is-month {
+  grid-template-columns: repeat(7, 18px);
+}
+
+.habit-mini-grid.is-year {
+  grid-template-columns: repeat(6, 20px);
+}
+
+.habit-mini-cell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface-soft));
+  color: color-mix(in srgb, var(--text) 84%, var(--habit-color));
+  font-family: "Outfit", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.habit-mini-cell.is-done,
+.habit-mini-cell.lv1 {
+  background: color-mix(in srgb, var(--habit-color) 40%, #fff);
+}
+
+.habit-mini-cell.lv2 {
+  background: color-mix(in srgb, var(--habit-color) 62%, #fff);
+}
+
+.habit-mini-cell.lv3 {
+  color: #fff;
+  background: color-mix(in srgb, var(--habit-color) 82%, var(--brand-deep));
+}
+
+.habit-stat-detail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--habit-color) 18%, var(--line));
+  animation: chipEnter .22s cubic-bezier(.2, .8, .2, 1);
+}
+
+.habit-stat-detail > div:not(.habit-detail-grid) {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--habit-color) 9%, var(--surface));
+}
+
+.habit-stat-detail span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.habit-stat-detail strong {
+  color: var(--text);
+  font-family: "Outfit", sans-serif;
+  font-size: 18px;
+}
+
+.habit-detail-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.habit-detail-grid.is-year {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.habit-detail-cell {
+  border-radius: 12px;
+  padding: 7px 6px;
+  text-align: center;
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface-soft));
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.habit-detail-cell.is-done {
+  color: color-mix(in srgb, var(--habit-color) 74%, var(--text));
+  background: color-mix(in srgb, var(--habit-color) 22%, var(--surface));
+}
+
+@media (max-width: 420px) {
+  .stats-year.is-week-mode .year-weekday-axis {
+    grid-template-rows: repeat(7, 5px);
+    gap: 1px;
+  }
+  .stats-year.is-week-mode .year-heatmap-grid {
+    grid-template-rows: repeat(7, 5px);
+    gap: 1px;
+  }
+  .stats-year.is-week-mode .year-heatmap-cell {
+    height: 5px;
+    min-height: 5px;
+  }
+  .habit-stat-card {
+    padding: 12px;
+    border-radius: 22px;
+  }
+  .habit-stat-card__summary {
+    grid-template-columns: minmax(82px, .74fr) minmax(0, 1fr);
+    gap: 10px;
+  }
+  .habit-mini-grid.is-week {
+    grid-template-columns: repeat(7, 20px);
+  }
+  .habit-mini-grid.is-month {
+    grid-template-columns: repeat(7, 16px);
+    gap: 4px;
+  }
+  .habit-mini-grid.is-year {
+    grid-template-columns: repeat(6, 18px);
+    gap: 4px;
+  }
+}
+
+@media (max-width: 370px) {
+  .stats-year.is-week-mode .year-weekday-axis {
+    display: none;
+  }
+  .stats-year.is-week-mode .year-heatmap-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .habit-mini-grid.is-month {
+    grid-template-columns: repeat(7, 14px);
+    gap: 3px;
+  }
+  .habit-mini-grid.is-year {
+    grid-template-columns: repeat(6, 16px);
+    gap: 3px;
+  }
+  .habit-mini-cell {
+    border-radius: 5px;
+    font-size: 10px;
+  }
+}

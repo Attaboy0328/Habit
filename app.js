@@ -209,6 +209,9 @@ const elements = {
   yearHeatmapGrid: document.querySelector("#yearHeatmapGrid"),
   yearDoneDays: document.querySelector("#yearDoneDays"),
   yearRate: document.querySelector("#yearRate"),
+  habitStatsLabel: document.querySelector("#habitStatsLabel"),
+  habitStatsRangeBtns: Array.from(document.querySelectorAll("[data-habit-range]")),
+  habitStatsList: document.querySelector("#habitStatsList"),
   timerStart: document.querySelector("#timerStart"),
   timerPause: document.querySelector("#timerPause"),
   timerReset: document.querySelector("#timerReset"),
@@ -242,6 +245,8 @@ const uiState = {
   statsWeekStart: startOfWeek(new Date()),
   statsYear: new Date().getFullYear(),
   yearHeatmapMode: "months",
+  habitStatsRange: "week",
+  expandedHabitId: "",
   timerMode: "pomo",
   pomoMinutes: 25,
   pomoLeftSec: 25 * 60,
@@ -298,6 +303,13 @@ function bindEvents() {
     button.addEventListener("click", () => {
       uiState.yearHeatmapMode = button.dataset.yearMode || "months";
       renderStats();
+    });
+  });
+  elements.habitStatsRangeBtns.forEach((button) => {
+    button.addEventListener("click", () => {
+      uiState.habitStatsRange = button.dataset.habitRange || "week";
+      uiState.expandedHabitId = "";
+      renderHabitStats();
     });
   });
 
@@ -664,6 +676,7 @@ function renderStats() {
 
   renderWeekCircles(allCounts);
   renderYearHeatmap(allCounts);
+  renderHabitStats();
 }
 
 function renderWeekCircles(allCounts) {
@@ -737,7 +750,7 @@ function renderYearWeekMatrix(allCounts, weeks) {
   const monthStarts = getMonthStartColumns(weeks, uiState.statsYear);
   monthStarts.forEach((col, month) => {
     const monthNode = document.createElement("span");
-    monthNode.textContent = `${month + 1}月`;
+    monthNode.textContent = String(month + 1);
     monthNode.style.gridColumn = String(col + 1);
     elements.yearMonthLabels.appendChild(monthNode);
   });
@@ -790,6 +803,151 @@ function createYearHeatCell(date, allCounts, showValue = false) {
   if (showValue && count > 0) cell.textContent = String(Math.min(count, 9));
   cell.title = `${key}：${count} 次`;
   return cell;
+}
+
+function renderHabitStats() {
+  if (!elements.habitStatsList) return;
+  const range = getHabitStatsRange(uiState.habitStatsRange);
+  elements.habitStatsLabel.textContent = range.label;
+  elements.habitStatsRangeBtns.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.habitRange === uiState.habitStatsRange);
+  });
+
+  elements.habitStatsList.innerHTML = "";
+  if (state.habits.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-box";
+    empty.textContent = "添加习惯后，这里会自动生成每个习惯的周期统计。";
+    elements.habitStatsList.appendChild(empty);
+    return;
+  }
+
+  state.habits.forEach((habit, index) => {
+    const count = getHabitDoneCount(habit, range.dates);
+    const rate = range.dates.length ? Math.round((count / range.dates.length) * 100) : 0;
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `habit-stat-card${uiState.expandedHabitId === habit.id ? " is-expanded" : ""}`;
+    card.style.setProperty("--habit-color", getHabitStatColor(index));
+    card.innerHTML = `
+      <div class="habit-stat-card__summary">
+        <div class="habit-stat-card__title">
+          <span>${escapeHtml(habit.icon)}</span>
+          <strong>${escapeHtml(habit.name)}</strong>
+        </div>
+        <div class="habit-stat-card__numbers">
+          <b>x${count}</b>
+          <span>${count}天</span>
+          <span>${rate}%</span>
+        </div>
+      </div>
+      <div class="habit-mini-grid ${range.gridClass}">${renderHabitMiniCells(habit, range)}</div>
+      ${uiState.expandedHabitId === habit.id ? renderHabitStatDetail(habit, range, count, rate) : ""}
+    `;
+    card.addEventListener("click", () => {
+      uiState.expandedHabitId = uiState.expandedHabitId === habit.id ? "" : habit.id;
+      renderHabitStats();
+    });
+    elements.habitStatsList.appendChild(card);
+  });
+}
+
+function renderHabitMiniCells(habit, range) {
+  if (range.type === "year") {
+    return range.months.map((monthDates, index) => {
+      const count = getHabitDoneCount(habit, monthDates);
+      const level = count === 0 ? "is-empty" : count <= 3 ? "lv1" : count <= 9 ? "lv2" : "lv3";
+      return `<span class="habit-mini-cell ${level}" title="${index + 1}月：${count}天">${count > 0 ? Math.min(count, 9) : ""}</span>`;
+    }).join("");
+  }
+
+  return range.dates.map((date) => {
+    const done = isHabitDoneOnDate(habit, date);
+    return `<span class="habit-mini-cell ${done ? "is-done" : "is-empty"}" title="${formatDateKey(date)}">${done ? "✓" : ""}</span>`;
+  }).join("");
+}
+
+function renderHabitStatDetail(habit, range, count, rate) {
+  const detailCells = range.type === "year"
+    ? range.months.map((monthDates, index) => {
+        const monthCount = getHabitDoneCount(habit, monthDates);
+        return `<span class="habit-detail-cell${monthCount > 0 ? " is-done" : ""}">${index + 1}月 ${monthCount}</span>`;
+      }).join("")
+    : range.dates.map((date) => {
+        const done = isHabitDoneOnDate(habit, date);
+        return `<span class="habit-detail-cell${done ? " is-done" : ""}">${formatShort(date)} ${done ? "✓" : "·"}</span>`;
+      }).join("");
+
+  return `
+    <div class="habit-stat-detail">
+      <div><span>当前周期</span><strong>${count}/${range.dates.length}</strong></div>
+      <div><span>完成率</span><strong>${rate}%</strong></div>
+      <div class="habit-detail-grid ${range.type === "year" ? "is-year" : ""}">${detailCells}</div>
+    </div>
+  `;
+}
+
+function getHabitStatsRange(type) {
+  const today = new Date();
+  if (type === "month") {
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const dates = getDatesInMonth(year, month);
+    return {
+      type,
+      dates,
+      gridClass: "is-month",
+      label: `${year}-${String(month + 1).padStart(2, "0")} 记录`
+    };
+  }
+  if (type === "year") {
+    const year = today.getFullYear();
+    const months = Array.from({ length: 12 }, (_, month) => getDatesInMonth(year, month));
+    const dates = months.flat();
+    return {
+      type,
+      dates,
+      months,
+      gridClass: "is-year",
+      label: `${year} 全年记录`
+    };
+  }
+
+  const start = startOfWeek(today);
+  const dates = Array.from({ length: 7 }, (_, index) => addDays(start, index));
+  return {
+    type: "week",
+    dates,
+    gridClass: "is-week",
+    label: `${formatShort(dates[0])} - ${formatShort(dates[6])} 记录`
+  };
+}
+
+function getDatesInMonth(year, month) {
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return Array.from({ length: lastDay }, (_, index) => new Date(year, month, index + 1));
+}
+
+function getHabitDoneCount(habit, dates) {
+  return dates.reduce((sum, date) => sum + (isHabitDoneOnDate(habit, date) ? 1 : 0), 0);
+}
+
+function isHabitDoneOnDate(habit, date) {
+  return Boolean(habit.history?.[formatDateKey(date)]);
+}
+
+function getHabitStatColor(index) {
+  const colors = ["#78aee8", "#f0c94a", "#8acba7", "#e9a0bd", "#b7a4e8", "#f0a97c", "#8fc9d2", "#c5c982"];
+  return colors[index % colors.length];
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function getDailyCounts() {

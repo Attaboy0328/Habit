@@ -152,6 +152,21 @@
               <span id="yearRate">🔥 0%</span>
             </div>
           </section>
+
+          <section class="stats-habits card">
+            <div class="stats-habits__head">
+              <div>
+                <h2>习惯统计</h2>
+                <p id="habitStatsLabel">本周记录</p>
+              </div>
+              <div class="habit-range-switch" aria-label="习惯统计周期">
+                <button class="is-active" data-habit-range="week" type="button">周</button>
+                <button data-habit-range="month" type="button">月</button>
+                <button data-habit-range="year" type="button">年</button>
+              </div>
+            </div>
+            <div id="habitStatsList" class="habit-stats-list"></div>
+          </section>
         </section>
       </section>
 
