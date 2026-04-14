@@ -12,12 +12,108 @@ const PRESET_CATEGORIES = [
   { id: "mind", name: "心理健康" }
 ];
 
-const THEME_COLORS = [
-  "#d48462", "#c98f7b", "#b9906f", "#9a9f75", "#7fa38d",
-  "#6f9ea2", "#7394b7", "#8b88b6", "#9b84a9", "#ad809b",
-  "#d98da6", "#e7a7ba", "#e7b2b5", "#c7a9a0", "#a59b93",
-  "#8e9b9a", "#6f9090", "#6f8da5", "#8d8d8d", "#c4a26f"
+function makeThemePalette({
+  id,
+  name,
+  swatch,
+  accent,
+  strong,
+  deep,
+  deeper,
+  soft,
+  bg,
+  surface = "#fffffb",
+  surfaceSoft,
+  highlight,
+  rgb,
+  orb,
+  warm
+}) {
+  return {
+    id,
+    name,
+    swatch,
+    vars: {
+      "--bg": bg,
+      "--surface": surface,
+      "--surface-soft": surfaceSoft,
+      "--text": "#0b1728",
+      "--muted": "#657386",
+      "--accent": accent,
+      "--accent-strong": strong,
+      "--brand-deep": deep,
+      "--brand-deeper": deeper,
+      "--brand-soft": soft,
+      "--highlight": highlight,
+      "--line": `rgba(${rgb}, 0.13)`,
+      "--shadow": `0 24px 70px rgba(${rgb}, 0.10)`,
+      "--card-shadow": `0 16px 38px rgba(${rgb}, 0.08)`,
+      "--nav-bg": "rgba(250, 255, 251, 0.92)",
+      "--bg-orb": orb,
+      "--bg-warm-orb": warm
+    },
+    darkVars: {
+      "--bg": "#0b1110",
+      "--surface": "#121918",
+      "--surface-soft": "#182321",
+      "--text": "#f7fffb",
+      "--muted": "#a6b7b1",
+      "--line": "rgba(255, 255, 255, 0.14)",
+      "--shadow": `0 24px 70px rgba(${rgb}, 0.20)`,
+      "--card-shadow": "0 16px 38px rgba(0, 0, 0, 0.24)",
+      "--nav-bg": "rgba(13, 19, 18, 0.92)",
+      "--bg-orb": `rgba(${rgb}, 0.28)`,
+      "--bg-warm-orb": "rgba(255, 255, 255, 0.04)"
+    }
+  };
+}
+
+const THEME_PALETTES = [
+  makeThemePalette({ id: "jade", name: "松石绿", swatch: "#087c68", accent: "#087c68", strong: "#075d52", deep: "#075d52", deeper: "#04483f", soft: "#dff3ec", bg: "#f3faf6", surfaceSoft: "#ecf6f1", highlight: "#f4e887", rgb: "7, 93, 82", orb: "rgba(190, 240, 225, 0.78)", warm: "rgba(246, 241, 197, 0.52)" }),
+  makeThemePalette({ id: "sakura", name: "樱花粉", swatch: "#e9a8bb", accent: "#d98aa4", strong: "#b86580", deep: "#7f4058", deeper: "#5d2d42", soft: "#fde8ef", bg: "#fff7f9", surfaceSoft: "#fbeef2", highlight: "#f8dc8c", rgb: "184, 101, 128", orb: "rgba(250, 211, 223, 0.82)", warm: "rgba(255, 232, 209, 0.54)" }),
+  makeThemePalette({ id: "rose", name: "豆沙玫瑰", swatch: "#c98f9f", accent: "#bd7d91", strong: "#9a6073", deep: "#75475a", deeper: "#563343", soft: "#f5e3e8", bg: "#fcf6f7", surfaceSoft: "#f3e9ec", highlight: "#f3d38a", rgb: "154, 96, 115", orb: "rgba(231, 196, 205, 0.76)", warm: "rgba(245, 223, 195, 0.48)" }),
+  makeThemePalette({ id: "coral", name: "雾珊瑚", swatch: "#d6907f", accent: "#cf806b", strong: "#a96050", deep: "#7b4037", deeper: "#5a2e29", soft: "#f8e4df", bg: "#fff8f5", surfaceSoft: "#f6ebe6", highlight: "#f4dd91", rgb: "169, 96, 80", orb: "rgba(241, 199, 189, 0.78)", warm: "rgba(254, 229, 190, 0.52)" }),
+  makeThemePalette({ id: "clay", name: "陶土橙", swatch: "#c98d67", accent: "#c68055", strong: "#9d6240", deep: "#754a32", deeper: "#543424", soft: "#f4e4d8", bg: "#fbf6ef", surfaceSoft: "#f2eadf", highlight: "#e7d77c", rgb: "157, 98, 64", orb: "rgba(225, 190, 163, 0.74)", warm: "rgba(245, 228, 178, 0.52)" }),
+  makeThemePalette({ id: "apricot", name: "杏仁奶", swatch: "#d4aa71", accent: "#c99a58", strong: "#9b743d", deep: "#755932", deeper: "#554025", soft: "#f5ead8", bg: "#fbf8ef", surfaceSoft: "#f2eddf", highlight: "#dbe18a", rgb: "155, 116, 61", orb: "rgba(235, 210, 170, 0.72)", warm: "rgba(238, 232, 186, 0.48)" }),
+  makeThemePalette({ id: "honey", name: "蜂蜜黄", swatch: "#d2bd68", accent: "#c4aa45", strong: "#947c2d", deep: "#6f5c24", deeper: "#50431d", soft: "#f3eed0", bg: "#fbfaf0", surfaceSoft: "#f0eedc", highlight: "#b7df93", rgb: "148, 124, 45", orb: "rgba(239, 226, 156, 0.70)", warm: "rgba(213, 231, 178, 0.45)" }),
+  makeThemePalette({ id: "sage", name: "鼠尾草", swatch: "#97ad8b", accent: "#879f7a", strong: "#687f5d", deep: "#4e6146", deeper: "#394836", soft: "#e9f1e5", bg: "#f6faf3", surfaceSoft: "#edf3e9", highlight: "#ebe18a", rgb: "104, 127, 93", orb: "rgba(213, 235, 202, 0.76)", warm: "rgba(241, 232, 184, 0.44)" }),
+  makeThemePalette({ id: "olive", name: "橄榄灰", swatch: "#8f9e77", accent: "#819263", strong: "#637449", deep: "#4b5738", deeper: "#373f2c", soft: "#ebf0de", bg: "#f8faf2", surfaceSoft: "#eef1e4", highlight: "#dcd987", rgb: "99, 116, 73", orb: "rgba(219, 229, 190, 0.70)", warm: "rgba(236, 226, 176, 0.42)" }),
+  makeThemePalette({ id: "eucalyptus", name: "尤加利", swatch: "#7db3a4", accent: "#68a998", strong: "#4f8679", deep: "#3b655d", deeper: "#2c4b45", soft: "#e1f2ed", bg: "#f3faf8", surfaceSoft: "#e9f4f1", highlight: "#f1e48b", rgb: "79, 134, 121", orb: "rgba(199, 237, 228, 0.74)", warm: "rgba(246, 238, 190, 0.46)" }),
+  makeThemePalette({ id: "cyan", name: "雾蓝青", swatch: "#7fb7bf", accent: "#68aab4", strong: "#4f8690", deep: "#3b646d", deeper: "#2b4a51", soft: "#e3f3f5", bg: "#f2f9fa", surfaceSoft: "#e8f3f5", highlight: "#efe18c", rgb: "79, 134, 144", orb: "rgba(199, 236, 240, 0.72)", warm: "rgba(242, 231, 185, 0.42)" }),
+  makeThemePalette({ id: "sky", name: "晴空蓝", swatch: "#8daed4", accent: "#789fc9", strong: "#5c7fa5", deep: "#435f7f", deeper: "#30455d", soft: "#e6eef8", bg: "#f5f8fd", surfaceSoft: "#ebf0f7", highlight: "#f0db8a", rgb: "92, 127, 165", orb: "rgba(208, 225, 246, 0.76)", warm: "rgba(244, 228, 189, 0.42)" }),
+  makeThemePalette({ id: "denim", name: "牛仔蓝", swatch: "#7d91b7", accent: "#6e83ac", strong: "#56678b", deep: "#3f4e69", deeper: "#2d394f", soft: "#e5eaf4", bg: "#f5f7fb", surfaceSoft: "#eceff5", highlight: "#e7d886", rgb: "86, 103, 139", orb: "rgba(205, 215, 236, 0.72)", warm: "rgba(237, 226, 184, 0.40)" }),
+  makeThemePalette({ id: "iris", name: "鸢尾紫", swatch: "#9b8bc4", accent: "#8b7abb", strong: "#6e5f99", deep: "#524772", deeper: "#3c3455", soft: "#eee9f7", bg: "#f8f6fd", surfaceSoft: "#f0ecf7", highlight: "#e8d783", rgb: "110, 95, 153", orb: "rgba(224, 215, 246, 0.75)", warm: "rgba(240, 226, 184, 0.40)" }),
+  makeThemePalette({ id: "lavender", name: "薰衣草", swatch: "#b5a4cf", accent: "#a491c7", strong: "#816ca5", deep: "#614f7c", deeper: "#46395d", soft: "#f1eaf8", bg: "#faf6fd", surfaceSoft: "#f2edf7", highlight: "#eadb8b", rgb: "129, 108, 165", orb: "rgba(230, 218, 247, 0.75)", warm: "rgba(240, 229, 194, 0.42)" }),
+  makeThemePalette({ id: "mauve", name: "灰紫粉", swatch: "#b894aa", accent: "#aa819a", strong: "#886277", deep: "#65475a", deeper: "#4b3443", soft: "#f3e7ef", bg: "#fbf6fa", surfaceSoft: "#f2eaf0", highlight: "#e8d483", rgb: "136, 98, 119", orb: "rgba(229, 205, 219, 0.76)", warm: "rgba(239, 224, 184, 0.42)" }),
+  makeThemePalette({ id: "plum", name: "梅子紫", swatch: "#9c7890", accent: "#916a84", strong: "#744f68", deep: "#57394e", deeper: "#402a3a", soft: "#efe2eb", bg: "#faf5f8", surfaceSoft: "#f0e8ed", highlight: "#e1d382", rgb: "116, 79, 104", orb: "rgba(217, 195, 209, 0.72)", warm: "rgba(236, 223, 186, 0.40)" }),
+  makeThemePalette({ id: "mocha", name: "摩卡棕", swatch: "#9f8b78", accent: "#927b67", strong: "#75604f", deep: "#57473a", deeper: "#40342c", soft: "#eee8e1", bg: "#f8f5f1", surfaceSoft: "#eeeae4", highlight: "#d8d17c", rgb: "117, 96, 79", orb: "rgba(221, 211, 200, 0.76)", warm: "rgba(233, 225, 180, 0.42)" }),
+  makeThemePalette({ id: "slate", name: "雾石灰", swatch: "#8f9c9a", accent: "#7f8f8d", strong: "#647472", deep: "#4b5756", deeper: "#384140", soft: "#e7eeee", bg: "#f5f8f7", surfaceSoft: "#ebf0ef", highlight: "#e3d884", rgb: "100, 116, 114", orb: "rgba(214, 226, 225, 0.70)", warm: "rgba(233, 225, 184, 0.38)" }),
+  makeThemePalette({ id: "graphite", name: "石墨黑", swatch: "#6f7777", accent: "#667272", strong: "#505c5c", deep: "#3c4545", deeper: "#2e3535", soft: "#e5e9e9", bg: "#f4f6f6", surfaceSoft: "#eaeeee", highlight: "#d7d080", rgb: "80, 92, 92", orb: "rgba(208, 216, 216, 0.68)", warm: "rgba(230, 223, 184, 0.36)" })
 ];
+
+const DEFAULT_THEME_ID = THEME_PALETTES[0].id;
+const LEGACY_THEME_IDS = {
+  "#d48462": "clay",
+  "#c98f7b": "coral",
+  "#b9906f": "mocha",
+  "#9a9f75": "sage",
+  "#7fa38d": "eucalyptus",
+  "#6f9ea2": "cyan",
+  "#7394b7": "denim",
+  "#8b88b6": "iris",
+  "#9b84a9": "lavender",
+  "#ad809b": "mauve",
+  "#d98da6": "sakura",
+  "#e7a7ba": "sakura",
+  "#e7b2b5": "rose",
+  "#c7a9a0": "mocha",
+  "#a59b93": "slate",
+  "#8e9b9a": "slate",
+  "#6f9090": "cyan",
+  "#6f8da5": "sky",
+  "#8d8d8d": "graphite",
+  "#c4a26f": "apricot"
+};
 
 const PRESET_HABITS = [
   { id: "vocab", name: "背单词", goal: "积累 30 个", icon: "📝", category: "study" },
@@ -118,7 +214,6 @@ const elements = {
   timerPause: document.querySelector("#timerPause"),
   timerReset: document.querySelector("#timerReset"),
   pomoApply: document.querySelector("#pomoApply"),
-  immerseToggle: document.querySelector("#immerseToggle"),
   pomoMinus: document.querySelector("#pomoMinus"),
   pomoPlus: document.querySelector("#pomoPlus"),
   pomoCustomMinutes: document.querySelector("#pomoCustomMinutes"),
@@ -149,7 +244,6 @@ const uiState = {
   activeCategory: "study",
   statsRange: "week",
   timerMode: "pomo",
-  immersiveTimer: false,
   pomoMinutes: 25,
   pomoLeftSec: 25 * 60,
   pomoTimer: null,
@@ -202,10 +296,6 @@ function bindEvents() {
   });
   elements.pomoMinus.addEventListener("click", () => applyPomodoroMinutes(uiState.pomoMinutes - 1));
   elements.pomoPlus.addEventListener("click", () => applyPomodoroMinutes(uiState.pomoMinutes + 1));
-  elements.immerseToggle.addEventListener("click", () => {
-    uiState.immersiveTimer = !uiState.immersiveTimer;
-    renderImmersiveTimer();
-  });
   elements.ringtoneSelect.addEventListener("change", () => {
     saveSettings();
     playRingtone(settings.ringtone, 1.2);
@@ -263,17 +353,22 @@ function loadState() {
 
 function loadSettings() {
   const raw = localStorage.getItem(SETTINGS_KEY);
-  if (!raw) return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft", privacyEnabled: false };
+  if (!raw) return { themeId: DEFAULT_THEME_ID, darkMode: false, ringtone: "soft", privacyEnabled: false };
   try {
     const parsed = JSON.parse(raw);
+    const legacyAccent = parsed.accent;
+    const legacyThemeId = LEGACY_THEME_IDS[legacyAccent];
+    const matchedTheme = THEME_PALETTES.find((palette) => {
+      return palette.id === parsed.themeId || palette.id === legacyThemeId || palette.swatch === legacyAccent || palette.vars["--accent"] === legacyAccent;
+    });
     return {
-      accent: parsed.accent || THEME_COLORS[0],
+      themeId: matchedTheme?.id || DEFAULT_THEME_ID,
       darkMode: Boolean(parsed.darkMode),
       ringtone: parsed.ringtone || "soft",
       privacyEnabled: Boolean(parsed.privacyEnabled)
     };
   } catch {
-    return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft", privacyEnabled: false };
+    return { themeId: DEFAULT_THEME_ID, darkMode: false, ringtone: "soft", privacyEnabled: false };
   }
 }
 
@@ -319,15 +414,17 @@ function initCategoryTabs() {
 
 function initThemeSwatches() {
   elements.themeSwatches.innerHTML = "";
-  THEME_COLORS.forEach((color) => {
+  THEME_PALETTES.forEach((palette) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "swatch";
-    btn.dataset.accent = color;
-    btn.style.setProperty("--sw", color);
-    if (color === settings.accent) btn.classList.add("is-active");
+    btn.dataset.themeId = palette.id;
+    btn.title = palette.name;
+    btn.setAttribute("aria-label", `切换到${palette.name}主题`);
+    btn.style.setProperty("--sw", palette.swatch);
+    if (palette.id === settings.themeId) btn.classList.add("is-active");
     btn.addEventListener("click", () => {
-      settings.accent = color;
+      settings.themeId = palette.id;
       saveSettings();
       applySettings();
       renderAll();
@@ -345,7 +442,6 @@ function renderAll() {
   renderStopwatch();
   renderLaps();
   renderTimerMode();
-  renderImmersiveTimer();
 }
 
 function renderNav() {
@@ -360,7 +456,6 @@ function renderNav() {
 function switchScreen(screen) {
   uiState.activeScreen = screen;
   renderNav();
-  renderImmersiveTimer();
 }
 
 function renderHome() {
@@ -505,11 +600,6 @@ function addCustomHabit() {
   });
   saveState();
   renderAll();
-}
-
-function renderImmersiveTimer() {
-  document.body.classList.toggle("timer-immersive", uiState.immersiveTimer && uiState.activeScreen === "timer");
-  elements.immerseToggle.textContent = `沉浸模式：${uiState.immersiveTimer ? "开" : "关"}`;
 }
 
 function addPresetHabit(preset) {
@@ -807,14 +897,22 @@ function formatElapsed(elapsed) {
 }
 
 function applySettings() {
-  document.documentElement.style.setProperty("--accent", settings.accent);
-  document.documentElement.style.setProperty("--accent-strong", settings.accent);
+  const palette = getThemePalette(settings.themeId);
+  const vars = settings.darkMode ? { ...palette.vars, ...palette.darkVars } : palette.vars;
+  Object.entries(vars).forEach(([name, value]) => {
+    document.documentElement.style.setProperty(name, value);
+  });
   document.documentElement.dataset.theme = settings.darkMode ? "dark" : "light";
+  document.documentElement.dataset.palette = palette.id;
   elements.darkModeToggle.checked = settings.darkMode;
   elements.ringtoneSelect.value = settings.ringtone || "soft";
   elements.themeSwatches.querySelectorAll(".swatch").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.accent === settings.accent);
+    button.classList.toggle("is-active", button.dataset.themeId === palette.id);
   });
+}
+
+function getThemePalette(themeId) {
+  return THEME_PALETTES.find((palette) => palette.id === themeId) || THEME_PALETTES[0];
 }
 
 function startReminderTicker() {
