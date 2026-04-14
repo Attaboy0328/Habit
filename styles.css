@@ -39,6 +39,11 @@
 * { box-sizing: border-box; }
 .is-hidden { display: none !important; }
 
+html {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: "Noto Sans SC", sans-serif;
@@ -48,6 +53,8 @@ body {
     radial-gradient(circle at -10% 72%, var(--bg-warm-orb), transparent 30%),
     linear-gradient(165deg, var(--bg), color-mix(in srgb, var(--bg) 78%, #fff));
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 :root[data-theme="dark"] body {
@@ -62,12 +69,19 @@ button { transition: transform .16s ease, opacity .16s ease, background .2s ease
 button:active { transform: scale(0.97); }
 
 .app-shell {
+  width: min(100%, 560px);
   max-width: 560px;
   margin: 0 auto;
   padding: 16px 14px 90px;
+  overflow-x: hidden;
 }
 
-.screen { display: none; animation: fade .24s ease; }
+.screen {
+  display: none;
+  min-width: 0;
+  max-width: 100%;
+  animation: fade .24s ease;
+}
 .screen.is-active { display: block; }
 
 @keyframes fade {
@@ -102,6 +116,8 @@ button:active { transform: scale(0.97); }
   border-radius: 16px;
   padding: 14px;
   margin-bottom: 12px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .card__head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -516,6 +532,7 @@ button:active { transform: scale(0.97); }
 
 /* Palette-driven finance-inspired app skin */
 .app-shell {
+  width: min(100%, 480px);
   max-width: 480px;
   padding: 22px 18px 112px;
 }
@@ -980,18 +997,32 @@ button:active { transform: scale(0.97); }
 }
 
 .stats-panel {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
   border-radius: 30px;
   padding: 14px;
-  background: linear-gradient(165deg, #1d2025, #17191f);
-  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.26);
+  color: #f8fffc;
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 30%),
+    radial-gradient(circle at 92% 12%, rgba(255, 255, 255, 0.12), transparent 28%),
+    linear-gradient(165deg, color-mix(in srgb, var(--brand-deep) 94%, #14191d), color-mix(in srgb, var(--brand-deeper) 92%, #0f1418));
+  box-shadow: var(--shadow);
 }
 
 .stats-panel .card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   margin-bottom: 12px;
   border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(165deg, #282b31, #22252b);
-  color: #f5f6f9;
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 18%, rgba(255, 255, 255, 0.08));
+  background:
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 34%),
+    linear-gradient(165deg, color-mix(in srgb, var(--brand-deep) 74%, rgba(255, 255, 255, 0.08)), color-mix(in srgb, var(--brand-deeper) 76%, rgba(255, 255, 255, 0.05)));
+  color: color-mix(in srgb, var(--brand-soft) 36%, #fff);
   box-shadow: none;
 }
 
@@ -1012,7 +1043,8 @@ button:active { transform: scale(0.97); }
 .stats-basic__cell {
   border-radius: 18px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.04);
+  min-width: 0;
+  background: color-mix(in srgb, var(--brand-soft) 10%, rgba(255, 255, 255, 0.04));
 }
 
 .stats-basic__cell p {
@@ -1089,13 +1121,15 @@ button:active { transform: scale(0.97); }
 .week-circle-row {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .week-circle-item {
   border: 0;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  min-width: 0;
+  background: color-mix(in srgb, var(--brand-soft) 8%, rgba(255, 255, 255, 0.04));
   padding: 8px 6px 10px;
   color: rgba(255, 255, 255, 0.75);
   display: grid;
@@ -1142,16 +1176,19 @@ button:active { transform: scale(0.97); }
 
 .year-heatmap-shell {
   display: grid;
-  grid-template-columns: 18px 1fr;
-  gap: 8px;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .year-weekday-axis {
   display: grid;
-  grid-template-rows: repeat(7, 10px);
-  gap: 4px;
+  grid-template-rows: repeat(7, minmax(0, 1fr));
+  gap: 2px;
   align-content: start;
-  padding-top: 26px;
+  padding-top: 22px;
 }
 
 .year-weekday-axis span {
@@ -1160,32 +1197,54 @@ button:active { transform: scale(0.97); }
   line-height: 1;
 }
 
+.year-weekday-axis span:last-child {
+  grid-row: 7;
+}
+
+.year-heatmap-main {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .year-month-labels {
   display: grid;
-  grid-template-columns: repeat(var(--week-cols, 53), 10px);
-  gap: 4px;
-  margin: 0 0 6px;
+  grid-template-columns: repeat(var(--week-cols, 53), minmax(0, 1fr));
+  column-gap: 2px;
+  align-items: end;
+  height: 18px;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  margin: 0 0 5px;
 }
 
 .year-month-labels span {
   color: rgba(255, 255, 255, 0.66);
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1;
   white-space: nowrap;
+  pointer-events: none;
 }
 
 .year-heatmap-grid {
   display: grid;
-  grid-template-columns: repeat(var(--week-cols, 53), 10px);
-  grid-template-rows: repeat(7, 10px);
-  gap: 4px;
+  grid-template-columns: repeat(var(--week-cols, 53), minmax(0, 1fr));
+  grid-template-rows: repeat(7, auto);
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .year-heatmap-cell {
-  width: 10px;
-  height: 10px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  min-width: 0;
   border: 0;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-soft) 10%, rgba(255, 255, 255, 0.07));
   padding: 0;
 }
 
@@ -1194,7 +1253,7 @@ button:active { transform: scale(0.97); }
 }
 
 .year-heatmap-cell.is-empty {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--brand-soft) 10%, rgba(255, 255, 255, 0.07));
 }
 
 .year-heatmap-cell.lv1 {
@@ -1218,10 +1277,66 @@ button:active { transform: scale(0.97); }
 }
 
 @media (max-width: 420px) {
-  .app-shell { padding-inline: 16px; }
+  .app-shell { padding: 18px 14px 108px; }
   .topbar h1 { font-size: 34px; }
   .timer-main { font-size: 52px; }
   .theme-swatches { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .stats-panel {
+    border-radius: 26px;
+    padding: 10px;
+  }
+  .stats-panel .card {
+    border-radius: 20px;
+    padding: 14px;
+  }
+  .stats-basic {
+    gap: 8px;
+  }
+  .stats-basic__cell {
+    padding: 11px 12px;
+  }
+  .stats-basic__cell strong {
+    font-size: 36px;
+  }
+  .stats-week__head h2,
+  .stats-year__head h2 {
+    font-size: 28px;
+  }
+  .week-switch,
+  .year-switch {
+    gap: 6px;
+  }
+  .week-switch button,
+  .year-switch button {
+    width: 28px;
+    height: 28px;
+  }
+  .week-switch span,
+  .year-switch strong {
+    min-width: 72px;
+  }
+  .week-circle-row {
+    gap: 4px;
+  }
+  .week-circle-item {
+    border-radius: 14px;
+    padding: 7px 4px 9px;
+  }
+  .week-circle-item__dot {
+    width: 30px;
+    height: 30px;
+  }
+  .year-heatmap-shell {
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 5px;
+  }
+  .year-month-labels {
+    column-gap: 1px;
+    height: 16px;
+  }
+  .year-heatmap-grid {
+    gap: 1px;
+  }
   .habit-item__actions { gap: 3px; }
   .habit-item__edit,
   .habit-item__remind,
@@ -1231,4 +1346,33 @@ button:active { transform: scale(0.97); }
     font-size: 10px;
   }
   .habit-item__check { width: 24px; height: 24px; }
+}
+
+@media (max-width: 370px) {
+  .app-shell { padding-inline: 10px; }
+  .stats-panel {
+    padding: 8px;
+    border-radius: 24px;
+  }
+  .stats-panel .card {
+    padding: 12px;
+  }
+  .stats-basic__cell {
+    border-radius: 16px;
+    padding: 10px;
+  }
+  .stats-basic__cell strong {
+    font-size: 32px;
+  }
+  .week-circle-item__date,
+  .week-circle-item__weekday,
+  .week-note {
+    font-size: 10px;
+  }
+  .year-weekday-axis {
+    display: none;
+  }
+  .year-heatmap-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
