@@ -270,6 +270,7 @@ function bootstrap() {
   initThemeSwatches();
   applySettings();
   renderAll();
+  registerServiceWorker();
   startReminderTicker();
   if (settings.privacyEnabled) showPrivacyLock();
 }
@@ -376,6 +377,15 @@ function bindEvents() {
   if (elements.lockNowBtn) elements.lockNowBtn.addEventListener("click", showPrivacyLock);
   if (elements.privacyUnlockBtn) elements.privacyUnlockBtn.addEventListener("click", biometricUnlock);
   if (elements.privacyFallbackBtn) elements.privacyFallbackBtn.addEventListener("click", fallbackUnlock);
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+      console.warn("Habit service worker registration failed", error);
+    });
+  });
 }
 
 function loadState() {
@@ -1243,6 +1253,7 @@ function applySettings() {
   });
   document.documentElement.dataset.theme = settings.darkMode ? "dark" : "light";
   document.documentElement.dataset.palette = palette.id;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", settings.darkMode ? vars["--bg"] : vars["--accent"]);
   elements.darkModeToggle.checked = settings.darkMode;
   elements.ringtoneSelect.value = settings.ringtone || "soft";
   elements.themeSwatches.querySelectorAll(".swatch").forEach((button) => {
