@@ -2,9 +2,6 @@
 const SETTINGS_KEY = "habit-mobile-settings-v3";
 const REMINDER_KEY = "habit-mobile-reminders-v1";
 const BIO_CRED_KEY = "habit-mobile-bio-cred-v1";
-const WEBDAV_KEY = "habit-mobile-webdav-v1";
-const PROXY_PRIMARY = "https://dav.282913.xyz";
-const PROXY_FALLBACK = "https://www.dav.282913.xyz";
 
 const PRESET_CATEGORIES = [
   { id: "study", name: "学习" },
@@ -126,16 +123,7 @@ const elements = {
   swReset: document.querySelector("#swReset"),
   themeSwatches: document.querySelector("#themeSwatches"),
   darkModeToggle: document.querySelector("#darkModeToggle"),
-  webdavUrl: document.querySelector("#webdavUrl"),
-  webdavUser: document.querySelector("#webdavUser"),
-  webdavPass: document.querySelector("#webdavPass"),
-  webdavTestBtn: document.querySelector("#webdavTestBtn"),
-  webdavUploadBtn: document.querySelector("#webdavUploadBtn"),
-  webdavDownloadBtn: document.querySelector("#webdavDownloadBtn"),
-  silentSyncToggle: document.querySelector("#silentSyncToggle"),
-  syncStatusText: document.querySelector("#syncStatusText"),
-  downloadBackupBtn: document.querySelector("#downloadBackupBtn"),
-  importBackupInput: document.querySelector("#importBackupInput"),
+  clearLocalDataBtn: document.querySelector("#clearLocalDataBtn"),
   registerBioBtn: document.querySelector("#registerBioBtn"),
   removeBioBtn: document.querySelector("#removeBioBtn"),
   unlockNowBtn: document.querySelector("#unlockNowBtn"),
@@ -148,7 +136,6 @@ const elements = {
 const state = loadState();
 const settings = loadSettings();
 const reminderState = loadReminders();
-const webdavConfig = loadWebdavConfig();
 let soundContext = null;
 
 const uiState = {
@@ -164,8 +151,7 @@ const uiState = {
   swTimer: null,
   swStartedAt: 0,
   laps: [],
-  reminderTick: null,
-  silentSyncTick: null
+  reminderTick: null
 };
 
 bootstrap();
@@ -177,7 +163,6 @@ function bootstrap() {
   applySettings();
   renderAll();
   startReminderTicker();
-  startSilentSyncTicker();
   if (settings.privacyEnabled) showPrivacyLock();
 }
 
@@ -246,21 +231,7 @@ function bindEvents() {
     applySettings();
   });
   elements.addCustomHabit.addEventListener("click", addCustomHabit);
-  if (elements.downloadBackupBtn) elements.downloadBackupBtn.addEventListener("click", downloadBackupJson);
-  if (elements.importBackupInput) elements.importBackupInput.addEventListener("change", importBackupJson);
-  if (elements.webdavTestBtn) elements.webdavTestBtn.addEventListener("click", webdavTestConnection);
-  if (elements.webdavUploadBtn) elements.webdavUploadBtn.addEventListener("click", webdavUploadBackup);
-  if (elements.webdavDownloadBtn) elements.webdavDownloadBtn.addEventListener("click", webdavDownloadBackup);
-  if (elements.webdavUrl) elements.webdavUrl.addEventListener("change", saveWebdavConfig);
-  if (elements.webdavUser) elements.webdavUser.addEventListener("change", saveWebdavConfig);
-  if (elements.webdavPass) elements.webdavPass.addEventListener("change", saveWebdavConfig);
-  if (elements.silentSyncToggle) {
-    elements.silentSyncToggle.addEventListener("change", () => {
-      saveWebdavConfig();
-      startSilentSyncTicker();
-      updateSyncStatus();
-    });
-  }
+  if (elements.clearLocalDataBtn) elements.clearLocalDataBtn.addEventListener("click", clearLocalData);
   if (elements.registerBioBtn) elements.registerBioBtn.addEventListener("click", registerBiometric);
   if (elements.removeBioBtn) elements.removeBioBtn.addEventListener("click", removeBiometric);
   if (elements.unlockNowBtn) elements.unlockNowBtn.addEventListener("click", biometricUnlock);
@@ -307,46 +278,18 @@ function loadReminders() {
   }
 }
 
-function loadWebdavConfig() {
-  const raw = localStorage.getItem(WEBDAV_KEY);
-  if (!raw) return { url: "", user: "", pass: "", silentSync: false, lastSync: "", proxyBase: PROXY_PRIMARY };
-  try {
-    const parsed = JSON.parse(raw);
-    return {
-      url: parsed.url || "",
-      user: parsed.user || "",
-      pass: parsed.pass || "",
-      silentSync: Boolean(parsed.silentSync),
-      lastSync: parsed.lastSync || "",
-      proxyBase: parsed.proxyBase || PROXY_PRIMARY
-    };
-  } catch {
-    return { url: "", user: "", pass: "", silentSync: false, lastSync: "", proxyBase: PROXY_PRIMARY };
-  }
-}
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  if (webdavConfig.silentSync) silentSyncUpload();
 }
 
 function saveSettings() {
   settings.ringtone = elements.ringtoneSelect.value;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  if (webdavConfig.silentSync) silentSyncUpload();
 }
 
 function saveReminders() {
   localStorage.setItem(REMINDER_KEY, JSON.stringify(reminderState));
-  if (webdavConfig.silentSync) silentSyncUpload();
-}
-
-function saveWebdavConfig() {
-  webdavConfig.url = (elements.webdavUrl?.value || "").trim();
-  webdavConfig.user = (elements.webdavUser?.value || "").trim();
-  webdavConfig.pass = elements.webdavPass?.value || "";
-  webdavConfig.silentSync = Boolean(elements.silentSyncToggle?.checked ?? webdavConfig.silentSync);
-  localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
 }
 
 function initCategoryTabs() {
@@ -853,11 +796,6 @@ function applySettings() {
   document.documentElement.dataset.theme = settings.darkMode ? "dark" : "light";
   elements.darkModeToggle.checked = settings.darkMode;
   elements.ringtoneSelect.value = settings.ringtone || "soft";
-  if (elements.webdavUrl) elements.webdavUrl.value = webdavConfig.url || "";
-  if (elements.webdavUser) elements.webdavUser.value = webdavConfig.user || "";
-  if (elements.webdavPass) elements.webdavPass.value = webdavConfig.pass || "";
-  if (elements.silentSyncToggle) elements.silentSyncToggle.checked = Boolean(webdavConfig.silentSync);
-  updateSyncStatus();
   elements.themeSwatches.querySelectorAll(".swatch").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.accent === settings.accent);
   });
@@ -893,161 +831,13 @@ function requestNotificationPermission() {
   });
 }
 
-function buildBackupPayload() {
-  return {
-    exportedAt: new Date().toISOString(),
-    state,
-    settings,
-    reminders: reminderState
-  };
-}
-
-function downloadBackupJson() {
-  const blob = new Blob([JSON.stringify(buildBackupPayload(), null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `habit-backup-${formatDateKey(new Date())}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function getWebdavRequestConfig(method, body) {
-  saveWebdavConfig();
-  if (!webdavConfig.url) throw new Error("请先填写 WebDAV 地址");
-  const headers = { "Content-Type": "application/json" };
-  const payload = {
-    targetUrl: webdavConfig.url,
-    username: webdavConfig.user,
-    password: webdavConfig.pass,
-    method,
-    body: body || ""
-  };
-  return { headers, body: JSON.stringify(payload) };
-}
-
-async function proxyWebdavFetch(method, body) {
-  const cfg = getWebdavRequestConfig(method, body);
-  const bases = [webdavConfig.proxyBase || PROXY_PRIMARY, PROXY_FALLBACK];
-  let lastError = null;
-
-  for (const base of bases) {
-    try {
-      const endpoint = `${base.replace(/\/+$/, "")}/proxy/webdav`;
-      const res = await fetch(endpoint, { method: "POST", headers: cfg.headers, body: cfg.body });
-      if (!res.ok) {
-        const message = await res.text();
-        throw new Error(message || `代理返回 HTTP ${res.status}`);
-      }
-      const text = await res.text();
-      return { text, base };
-    } catch (err) {
-      lastError = err;
-      webdavConfig.proxyBase = base === PROXY_PRIMARY ? PROXY_FALLBACK : PROXY_PRIMARY;
-    }
-  }
-  throw lastError || new Error("代理不可用");
-}
-
-async function webdavTestConnection() {
-  try {
-    const { base } = await proxyWebdavFetch("PROPFIND");
-    webdavConfig.proxyBase = base;
-    localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
-    alert(`坚果云连接正常，当前代理：${base}`);
-  } catch (err) {
-    alert(`连接失败：${err.message}`);
-  }
-}
-
-async function webdavUploadBackup() {
-  try {
-    const body = JSON.stringify(buildBackupPayload(), null, 2);
-    const { base } = await proxyWebdavFetch("PUT", body);
-    webdavConfig.proxyBase = base;
-    webdavConfig.lastSync = new Date().toISOString();
-    localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
-    updateSyncStatus();
-    alert("已手动同步上传到坚果云。");
-  } catch (err) {
-    alert(`上传失败：${err.message}`);
-  }
-}
-
-async function webdavDownloadBackup() {
-  try {
-    const { text, base } = await proxyWebdavFetch("GET");
-    webdavConfig.proxyBase = base;
-    const parsed = JSON.parse(text);
-    applyBackupPayload(parsed);
-    webdavConfig.lastSync = new Date().toISOString();
-    localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
-    updateSyncStatus();
-    alert("已从坚果云下载并恢复。");
-  } catch (err) {
-    alert(`下载失败：${err.message}`);
-  }
-}
-
-function updateSyncStatus() {
-  if (!elements.syncStatusText) return;
-  const mode = webdavConfig.silentSync ? "静默同步已开启" : "静默同步未开启";
-  const last = webdavConfig.lastSync ? `，上次：${new Date(webdavConfig.lastSync).toLocaleString("zh-CN")}` : "";
-  elements.syncStatusText.textContent = `${mode}${last}`;
-}
-
-function startSilentSyncTicker() {
-  if (uiState.silentSyncTick) clearInterval(uiState.silentSyncTick);
-  if (!webdavConfig.silentSync) return;
-  uiState.silentSyncTick = setInterval(() => {
-    silentSyncUpload();
-  }, 5 * 60 * 1000);
-}
-
-async function silentSyncUpload() {
-  if (!webdavConfig.url) return;
-  try {
-    const body = JSON.stringify(buildBackupPayload(), null, 2);
-    const { base } = await proxyWebdavFetch("PUT", body);
-    webdavConfig.proxyBase = base;
-    webdavConfig.lastSync = new Date().toISOString();
-    localStorage.setItem(WEBDAV_KEY, JSON.stringify(webdavConfig));
-    updateSyncStatus();
-  } catch {
-    // keep silent
-  }
-}
-
-function importBackupJson(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-  file.text().then((text) => {
-    try {
-      const parsed = JSON.parse(text);
-      applyBackupPayload(parsed);
-      alert("备份导入成功");
-    } catch {
-      alert("导入失败：文件格式不正确");
-    }
-  });
-}
-
-function applyBackupPayload(parsed) {
-  if (parsed.state?.habits) {
-    state.habits = parsed.state.habits;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-  if (parsed.settings) {
-    Object.assign(settings, parsed.settings);
-    saveSettings();
-  }
-  if (parsed.reminders) {
-    Object.keys(reminderState).forEach((k) => delete reminderState[k]);
-    Object.assign(reminderState, parsed.reminders);
-    saveReminders();
-  }
-  applySettings();
-  renderAll();
+function clearLocalData() {
+  if (!confirm("确认清空本地所有数据吗？此操作不可恢复。")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SETTINGS_KEY);
+  localStorage.removeItem(REMINDER_KEY);
+  localStorage.removeItem(BIO_CRED_KEY);
+  location.reload();
 }
 
 function randomBuffer(len = 32) {

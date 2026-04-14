@@ -417,26 +417,6 @@ button:active { transform: scale(0.97); }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-.webdav-form {
-  margin-top: 8px;
-  display: grid;
-  gap: 8px;
-}
-.webdav-form input {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 9px 10px;
-  background: transparent;
-  color: var(--text);
-}
-.proxy-note {
-  font-size: 12px;
-  color: var(--muted);
-}
-.proxy-note code {
-  font-family: "Outfit", sans-serif;
-  font-size: 12px;
-}
 .file-btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; }
 .file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 

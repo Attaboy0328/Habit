@@ -207,28 +207,10 @@
 
         <section class="card settings-list">
           <section class="setting-cell setting-cell--panel">
-            <span>备份与同步</span>
-            <small>坚果云 WebDAV（通过 Cloudflare 代理，规避浏览器 CORS）</small>
-            <div class="proxy-note">代理地址：<code>https://dav.282913.xyz</code>（备用：<code>https://www.dav.282913.xyz</code>）</div>
-            <div class="webdav-form">
-              <input id="webdavUrl" type="text" placeholder="坚果云 WebDAV 地址">
-              <input id="webdavUser" type="text" placeholder="账号">
-              <input id="webdavPass" type="password" placeholder="应用专用密码">
-            </div>
-            <div class="setting-row">
-              <p>静默同步（每5分钟）</p>
-              <label class="switch">
-                <input id="silentSyncToggle" type="checkbox">
-                <span></span>
-              </label>
-            </div>
-            <p class="subtle" id="syncStatusText">尚未同步</p>
+            <span>本地静默保存</span>
+            <small>所有数据将自动保存在当前浏览器本地，无需手动同步。</small>
             <div class="setting-actions">
-              <button id="webdavTestBtn" type="button" class="btn-ghost">测试连接</button>
-              <button id="webdavUploadBtn" type="button" class="btn-ghost">手动同步上传</button>
-              <button id="webdavDownloadBtn" type="button" class="btn-ghost">手动同步下载</button>
-              <button id="downloadBackupBtn" type="button" class="btn-ghost">下载本地备份</button>
-              <label class="btn-ghost file-btn">导入备份 JSON<input id="importBackupInput" type="file" accept="application/json"></label>
+              <button id="clearLocalDataBtn" type="button" class="btn-ghost">清空本地数据</button>
             </div>
           </section>
           <section class="setting-cell setting-cell--panel">
