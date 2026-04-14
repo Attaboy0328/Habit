@@ -803,30 +803,49 @@ function renderYearHeatmap(allCounts) {
 }
 
 function renderYearWeekMatrix(allCounts, weeks) {
-  elements.yearAxis.innerHTML = "<span>日</span><span>六</span>";
-  elements.yearHeatmapGrid.style.setProperty("--week-cols", String(weeks.length));
-  elements.yearMonthLabels.style.setProperty("--week-cols", String(weeks.length));
+  elements.yearAxis.innerHTML = "";
+  const splitColumns = Math.ceil(weeks.length / 2);
+  elements.yearHeatmapGrid.style.setProperty("--week-cols", String(splitColumns));
+  elements.yearMonthLabels.style.setProperty("--week-cols", String(splitColumns));
+  const axisFragment = document.createDocumentFragment();
   const heatmapFragment = document.createDocumentFragment();
-  const labelFragment = document.createDocumentFragment();
+
+  [
+    { label: "日", row: 2 },
+    { label: "六", row: 8 },
+    { label: "日", row: 11 },
+    { label: "六", row: 17 }
+  ].forEach((item) => {
+    const axis = document.createElement("span");
+    axis.textContent = item.label;
+    axis.style.gridRow = String(item.row);
+    axisFragment.appendChild(axis);
+  });
 
   weeks.forEach((week, weekIndex) => {
+    const band = weekIndex >= splitColumns ? 1 : 0;
+    const column = (weekIndex % splitColumns) + 1;
     week.forEach((date, rowIndex) => {
       const cell = createYearHeatCell(date, allCounts);
-      cell.style.gridColumn = String(weekIndex + 1);
-      cell.style.gridRow = String(rowIndex + 1);
+      cell.style.gridColumn = String(column);
+      cell.style.gridRow = String(band * 9 + rowIndex + 2);
       heatmapFragment.appendChild(cell);
     });
   });
 
   const monthStarts = getMonthStartColumns(weeks, uiState.statsYear);
-  monthStarts.forEach((col, month) => {
+  monthStarts.forEach((weekIndex, month) => {
+    const band = weekIndex >= splitColumns ? 1 : 0;
+    const column = (weekIndex % splitColumns) + 1;
     const monthNode = document.createElement("span");
+    monthNode.className = "year-week-month-label";
     monthNode.textContent = String(month + 1);
-    monthNode.style.gridColumn = String(col + 1);
-    labelFragment.appendChild(monthNode);
+    monthNode.style.gridColumn = String(column);
+    monthNode.style.gridRow = String(band * 9 + 1);
+    heatmapFragment.appendChild(monthNode);
   });
+  elements.yearAxis.appendChild(axisFragment);
   elements.yearHeatmapGrid.appendChild(heatmapFragment);
-  elements.yearMonthLabels.appendChild(labelFragment);
 }
 
 function renderYearMonthMatrix(allCounts) {
