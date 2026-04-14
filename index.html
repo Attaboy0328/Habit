@@ -128,10 +128,16 @@
           <section class="stats-year card">
             <div class="stats-year__head">
               <h2>全年</h2>
-              <div class="year-switch">
-                <button id="yearPrevBtn" type="button" aria-label="上一年">‹</button>
-                <strong id="yearLabel">2026</strong>
-                <button id="yearNextBtn" type="button" aria-label="下一年">›</button>
+              <div class="year-head-controls">
+                <div class="year-switch">
+                  <button id="yearPrevBtn" type="button" aria-label="上一年">‹</button>
+                  <strong id="yearLabel">2026</strong>
+                  <button id="yearNextBtn" type="button" aria-label="下一年">›</button>
+                </div>
+                <div class="year-mode-switch" aria-label="年度热力图显示方式">
+                  <button class="is-active" data-year-mode="months" type="button">月列</button>
+                  <button data-year-mode="weeks" type="button">周墙</button>
+                </div>
               </div>
             </div>
             <div class="year-heatmap-shell">
@@ -154,7 +160,7 @@
           <div class="card__head card__head--stack">
             <div>
               <h2>主题色</h2>
-              <p class="subtle">20种低饱和色，含樱花粉</p>
+              <p class="subtle">20种低饱和主题色，自动同步全局组件</p>
             </div>
           </div>
           <div class="theme-swatches" id="themeSwatches"></div>

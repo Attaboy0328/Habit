@@ -1376,3 +1376,424 @@ button:active { transform: scale(0.97); }
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Softer app-wide interactions and theme-matched panels */
+button {
+  transition:
+    transform .22s cubic-bezier(.2, .8, .2, 1),
+    opacity .22s ease,
+    background .28s ease,
+    color .28s ease,
+    border-color .28s ease,
+    box-shadow .28s ease;
+}
+
+.screen.is-active {
+  animation: screenEnter .32s cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes screenEnter {
+  from { opacity: 0; transform: translateY(12px) scale(.99); filter: blur(5px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes chipEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-nav__item,
+.tab-btn,
+.segmented__btn,
+.preset-chip,
+.week-circle-item,
+.year-mode-switch button {
+  transition:
+    transform .24s cubic-bezier(.2, .8, .2, 1),
+    background .28s ease,
+    color .28s ease,
+    box-shadow .28s ease,
+    border-color .28s ease;
+}
+
+.mobile-nav__item.is-active,
+.tab-btn.is-active,
+.segmented__btn.is-active,
+.year-mode-switch button.is-active {
+  transform: translateY(-1px);
+}
+
+.preset-section {
+  animation: chipEnter .24s cubic-bezier(.2, .8, .2, 1);
+}
+
+.preset-chip {
+  animation: chipEnter .22s cubic-bezier(.2, .8, .2, 1);
+}
+
+.habit-item__check.is-done {
+  background: color-mix(in srgb, var(--accent) 68%, #fff);
+  border-color: color-mix(in srgb, var(--accent) 58%, #fff);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.habit-item.is-done {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+
+.tab-btn.is-active {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.timer-card {
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--accent) 13%, var(--line));
+  background:
+    radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 34%),
+    linear-gradient(150deg, color-mix(in srgb, var(--surface) 94%, var(--brand-soft)), color-mix(in srgb, var(--surface-soft) 82%, var(--surface)));
+  box-shadow: var(--card-shadow);
+}
+
+.timer-card .card__head h2,
+.timer-card .timer-main,
+.timer-card .lap-item strong,
+.timer-card .slider-head strong {
+  color: var(--text);
+}
+
+.timer-card .segmented__btn.is-active {
+  color: var(--accent-strong);
+}
+
+.timer-card .time-input-row label,
+.timer-card .stopwatch-hint,
+.timer-card .lap-list-wrap h3,
+.timer-card .lap-item span {
+  color: var(--muted);
+}
+
+.segmented--timer {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-soft));
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--line));
+}
+
+.segmented--timer .segmented__btn {
+  color: var(--muted);
+}
+
+.segmented--timer .segmented__btn.is-active {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.timer-card .quick-btn,
+.timer-card .time-input-row input,
+.timer-card .select,
+.timer-card .ringtone-preview-single,
+.timer-card .btn-ghost,
+.timer-card .lap-item {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 13%, var(--line));
+  background: color-mix(in srgb, var(--surface) 84%, var(--surface-soft));
+}
+
+.timer-card .quick-btn.is-active,
+.timer-card .btn-primary {
+  color: color-mix(in srgb, var(--text) 86%, var(--brand-deeper));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--highlight) 76%, #fff), color-mix(in srgb, var(--accent) 18%, #fff));
+  border-color: transparent;
+}
+
+.time-input-row--slider {
+  border-color: color-mix(in srgb, var(--accent) 13%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.time-input-row--slider input[type="range"]::-webkit-slider-runnable-track {
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface-soft));
+}
+
+.time-input-row--slider input[type="range"]::-webkit-slider-thumb {
+  background: color-mix(in srgb, var(--highlight) 84%, #fff);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.time-input-row--slider input[type="range"]::-moz-range-track {
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface-soft));
+}
+
+.time-input-row--slider input[type="range"]::-moz-range-thumb {
+  background: color-mix(in srgb, var(--highlight) 84%, #fff);
+}
+
+.stats-panel {
+  color: var(--text);
+  background:
+    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 34%),
+    linear-gradient(155deg, color-mix(in srgb, var(--surface) 92%, var(--brand-soft)), color-mix(in srgb, var(--surface-soft) 82%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--accent) 13%, var(--line));
+  box-shadow: var(--card-shadow);
+}
+
+.stats-panel .card {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 13%, var(--line));
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 32%),
+    color-mix(in srgb, var(--surface) 88%, var(--surface-soft));
+}
+
+.stats-basic {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.stats-basic__cell,
+.stats-basic__cell--wide {
+  grid-column: auto;
+  display: block;
+  min-height: 82px;
+  padding: 10px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.stats-basic__cell p {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stats-basic__cell strong {
+  font-size: 32px;
+}
+
+.stats-basic__cell span,
+.stats-basic__cell--wide small {
+  color: var(--muted);
+}
+
+.stats-basic__cell--wide small {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.stats-week__head h2,
+.stats-year__head h2 {
+  font-size: 26px;
+  color: var(--text);
+}
+
+.week-switch button,
+.year-switch button,
+.year-mode-switch button {
+  border-color: color-mix(in srgb, var(--accent) 16%, var(--line));
+  background: color-mix(in srgb, var(--surface) 78%, var(--surface-soft));
+  color: var(--muted);
+}
+
+.week-switch span,
+.year-switch strong {
+  color: var(--text);
+}
+
+.year-head-controls {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.year-mode-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-soft));
+  border: 1px solid color-mix(in srgb, var(--accent) 11%, var(--line));
+}
+
+.year-mode-switch button {
+  border: 0;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: transparent;
+}
+
+.year-mode-switch button.is-active {
+  color: var(--accent-strong);
+  background: var(--surface);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.week-circle-item {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.week-circle-item__weekday,
+.week-note {
+  color: var(--muted);
+}
+
+.week-circle-item__dot {
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
+  background: color-mix(in srgb, var(--surface) 70%, var(--surface-soft));
+}
+
+.week-circle-item.is-done .week-circle-item__dot,
+.week-circle-item.is-many .week-circle-item__dot {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 42%, #fff);
+}
+
+.year-heatmap-shell {
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.year-weekday-axis span,
+.year-month-labels span {
+  color: var(--muted);
+}
+
+.stats-year.is-month-mode .year-weekday-axis {
+  grid-template-rows: repeat(31, minmax(0, 1fr));
+  gap: 3px;
+  padding-top: 24px;
+}
+
+.stats-year.is-month-mode .year-month-labels {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 3px;
+  height: 22px;
+  margin-bottom: 7px;
+}
+
+.stats-year.is-month-mode .year-heatmap-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(31, auto);
+  gap: 3px;
+}
+
+.stats-year.is-month-mode .year-heatmap-cell {
+  border-radius: 5px;
+  font-family: "Outfit", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.stats-year.is-week-mode .year-heatmap-grid {
+  gap: 2px;
+}
+
+.stats-year.is-week-mode .year-heatmap-cell {
+  border-radius: 999px;
+}
+
+.year-heatmap-cell.is-empty {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface-soft));
+}
+
+.year-heatmap-cell.is-out {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.year-heatmap-cell.lv1 {
+  background: color-mix(in srgb, var(--accent) 36%, #fff);
+}
+
+.year-heatmap-cell.lv2 {
+  background: color-mix(in srgb, var(--accent) 58%, #fff);
+}
+
+.year-heatmap-cell.lv3 {
+  background: color-mix(in srgb, var(--accent) 82%, var(--brand-deep));
+}
+
+.year-foot {
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .timer-card,
+:root[data-theme="dark"] .stats-panel {
+  color: var(--text);
+  background:
+    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 34%),
+    linear-gradient(155deg, color-mix(in srgb, var(--surface) 86%, var(--brand-deeper)), var(--surface));
+}
+
+:root[data-theme="dark"] .stats-panel .card,
+:root[data-theme="dark"] .timer-card .quick-btn,
+:root[data-theme="dark"] .timer-card .time-input-row input,
+:root[data-theme="dark"] .timer-card .select,
+:root[data-theme="dark"] .timer-card .ringtone-preview-single,
+:root[data-theme="dark"] .timer-card .btn-ghost,
+:root[data-theme="dark"] .timer-card .lap-item {
+  background: color-mix(in srgb, var(--surface) 82%, var(--surface-soft));
+}
+
+@media (max-width: 420px) {
+  .stats-basic {
+    gap: 7px;
+    padding: 8px;
+  }
+  .stats-basic__cell,
+  .stats-basic__cell--wide {
+    min-height: 74px;
+    padding: 9px;
+  }
+  .stats-basic__cell strong {
+    font-size: 28px;
+  }
+  .stats-year__head {
+    align-items: flex-start;
+  }
+  .year-head-controls {
+    gap: 6px;
+  }
+  .year-mode-switch button {
+    min-width: 40px;
+    padding: 5px 8px;
+  }
+  .stats-year.is-month-mode .year-heatmap-shell {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+  .stats-year.is-month-mode .year-heatmap-grid {
+    gap: 2px;
+  }
+  .stats-year.is-month-mode .year-heatmap-cell {
+    border-radius: 4px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 370px) {
+  .stats-basic__cell,
+  .stats-basic__cell--wide {
+    min-height: 68px;
+  }
+  .stats-basic__cell strong {
+    font-size: 24px;
+  }
+  .stats-year.is-month-mode .year-weekday-axis {
+    display: grid;
+  }
+  .stats-year.is-month-mode .year-heatmap-shell {
+    grid-template-columns: 16px minmax(0, 1fr);
+  }
+  .year-mode-switch button {
+    min-width: 36px;
+    font-size: 11px;
+  }
+}

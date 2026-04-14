@@ -70,7 +70,7 @@ function makeThemePalette({
 
 const THEME_PALETTES = [
   makeThemePalette({ id: "jade", name: "松石绿", swatch: "#087c68", accent: "#087c68", strong: "#075d52", deep: "#075d52", deeper: "#04483f", soft: "#dff3ec", bg: "#f3faf6", surfaceSoft: "#ecf6f1", highlight: "#f4e887", rgb: "7, 93, 82", orb: "rgba(190, 240, 225, 0.78)", warm: "rgba(246, 241, 197, 0.52)" }),
-  makeThemePalette({ id: "sakura", name: "樱花粉", swatch: "#e9a8bb", accent: "#df8ea8", strong: "#c16f8d", deep: "#a84f72", deeper: "#843653", soft: "#fde8ef", bg: "#fff7f9", surfaceSoft: "#fbeef2", highlight: "#f8d987", rgb: "193, 111, 141", orb: "rgba(250, 211, 223, 0.82)", warm: "rgba(255, 232, 209, 0.54)" }),
+  makeThemePalette({ id: "sakura", name: "樱花粉", swatch: "#efb0c3", accent: "#e89ab3", strong: "#d87f9f", deep: "#c86f92", deeper: "#ad577b", soft: "#fde9f0", bg: "#fff8fa", surfaceSoft: "#fbf0f4", highlight: "#f8df96", rgb: "216, 127, 159", orb: "rgba(252, 220, 231, 0.84)", warm: "rgba(255, 236, 214, 0.56)" }),
   makeThemePalette({ id: "rose", name: "豆沙玫瑰", swatch: "#c98f9f", accent: "#bd7d91", strong: "#9a6073", deep: "#75475a", deeper: "#563343", soft: "#f5e3e8", bg: "#fcf6f7", surfaceSoft: "#f3e9ec", highlight: "#f3d38a", rgb: "154, 96, 115", orb: "rgba(231, 196, 205, 0.76)", warm: "rgba(245, 223, 195, 0.48)" }),
   makeThemePalette({ id: "coral", name: "雾珊瑚", swatch: "#d6907f", accent: "#cf806b", strong: "#a96050", deep: "#7b4037", deeper: "#5a2e29", soft: "#f8e4df", bg: "#fff8f5", surfaceSoft: "#f6ebe6", highlight: "#f4dd91", rgb: "169, 96, 80", orb: "rgba(241, 199, 189, 0.78)", warm: "rgba(254, 229, 190, 0.52)" }),
   makeThemePalette({ id: "clay", name: "陶土橙", swatch: "#c98d67", accent: "#c68055", strong: "#9d6240", deep: "#754a32", deeper: "#543424", soft: "#f4e4d8", bg: "#fbf6ef", surfaceSoft: "#f2eadf", highlight: "#e7d77c", rgb: "157, 98, 64", orb: "rgba(225, 190, 163, 0.74)", warm: "rgba(245, 228, 178, 0.52)" }),
@@ -195,6 +195,7 @@ const elements = {
   statCheckins: document.querySelector("#statCheckins"),
   statPersist: document.querySelector("#statPersist"),
   statStartDate: document.querySelector("#statStartDate"),
+  statsYear: document.querySelector(".stats-year"),
   weekRangeLabel: document.querySelector("#weekRangeLabel"),
   weekPrevBtn: document.querySelector("#weekPrevBtn"),
   weekNextBtn: document.querySelector("#weekNextBtn"),
@@ -202,6 +203,8 @@ const elements = {
   yearPrevBtn: document.querySelector("#yearPrevBtn"),
   yearNextBtn: document.querySelector("#yearNextBtn"),
   yearLabel: document.querySelector("#yearLabel"),
+  yearModeBtns: Array.from(document.querySelectorAll("[data-year-mode]")),
+  yearAxis: document.querySelector(".year-weekday-axis"),
   yearMonthLabels: document.querySelector("#yearMonthLabels"),
   yearHeatmapGrid: document.querySelector("#yearHeatmapGrid"),
   yearDoneDays: document.querySelector("#yearDoneDays"),
@@ -238,6 +241,7 @@ const uiState = {
   activeCategory: "study",
   statsWeekStart: startOfWeek(new Date()),
   statsYear: new Date().getFullYear(),
+  yearHeatmapMode: "months",
   timerMode: "pomo",
   pomoMinutes: 25,
   pomoLeftSec: 25 * 60,
@@ -290,6 +294,12 @@ function bindEvents() {
       renderStats();
     });
   }
+  elements.yearModeBtns.forEach((button) => {
+    button.addEventListener("click", () => {
+      uiState.yearHeatmapMode = button.dataset.yearMode || "months";
+      renderStats();
+    });
+  });
 
   elements.timerModeBtns.forEach((button) => {
     button.addEventListener("click", () => {
@@ -540,7 +550,6 @@ function renderHome() {
     title.textContent = habit.name;
     item.classList.toggle("is-done", isDone);
     check.classList.toggle("is-done", isDone);
-    item.style.background = isDone ? "color-mix(in srgb, var(--accent) 16%, var(--surface-soft))" : "";
     remind.classList.toggle("is-active", remindConf.enabled);
 
     remind.addEventListener("click", () => {
@@ -687,31 +696,40 @@ function renderYearHeatmap(allCounts) {
   elements.yearLabel.textContent = String(uiState.statsYear);
   elements.yearHeatmapGrid.innerHTML = "";
   elements.yearMonthLabels.innerHTML = "";
+  elements.yearModeBtns.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.yearMode === uiState.yearHeatmapMode);
+  });
+  elements.statsYear.classList.toggle("is-month-mode", uiState.yearHeatmapMode === "months");
+  elements.statsYear.classList.toggle("is-week-mode", uiState.yearHeatmapMode === "weeks");
+  elements.yearHeatmapGrid.classList.toggle("is-month-matrix", uiState.yearHeatmapMode === "months");
+  elements.yearHeatmapGrid.classList.toggle("is-week-matrix", uiState.yearHeatmapMode === "weeks");
+  elements.yearMonthLabels.classList.toggle("is-month-matrix", uiState.yearHeatmapMode === "months");
+  elements.yearMonthLabels.classList.toggle("is-week-matrix", uiState.yearHeatmapMode === "weeks");
 
   const { weeks, yearDays } = buildYearWeeks(uiState.statsYear);
+  if (uiState.yearHeatmapMode === "months") {
+    renderYearMonthMatrix(allCounts);
+  } else {
+    renderYearWeekMatrix(allCounts, weeks);
+  }
+
+  const yearKeys = yearDays.map(formatDateKey);
+  const doneDays = yearKeys.filter((key) => (allCounts[key] || 0) > 0).length;
+  const rate = yearDays.length ? Math.round((doneDays / yearDays.length) * 100) : 0;
+  elements.yearDoneDays.textContent = `🏆 ${doneDays} 天`;
+  elements.yearRate.textContent = `🔥 ${rate}%`;
+}
+
+function renderYearWeekMatrix(allCounts, weeks) {
+  elements.yearAxis.innerHTML = "<span>日</span><span>六</span>";
   elements.yearHeatmapGrid.style.setProperty("--week-cols", String(weeks.length));
   elements.yearMonthLabels.style.setProperty("--week-cols", String(weeks.length));
 
   weeks.forEach((week, weekIndex) => {
     week.forEach((date, rowIndex) => {
-      const cell = document.createElement("button");
-      cell.type = "button";
-      cell.className = "year-heatmap-cell";
+      const cell = createYearHeatCell(date, allCounts);
       cell.style.gridColumn = String(weekIndex + 1);
       cell.style.gridRow = String(rowIndex + 1);
-
-      if (!date || date.getFullYear() !== uiState.statsYear) {
-        cell.classList.add("is-out");
-      } else {
-        const key = formatDateKey(date);
-        const count = allCounts[key] || 0;
-        if (count > 0 && count <= 1) cell.classList.add("lv1");
-        if (count > 1 && count <= 3) cell.classList.add("lv2");
-        if (count > 3) cell.classList.add("lv3");
-        if (count === 0) cell.classList.add("is-empty");
-        cell.title = `${key}：${count} 次`;
-      }
-
       elements.yearHeatmapGrid.appendChild(cell);
     });
   });
@@ -723,12 +741,55 @@ function renderYearHeatmap(allCounts) {
     monthNode.style.gridColumn = String(col + 1);
     elements.yearMonthLabels.appendChild(monthNode);
   });
+}
 
-  const yearKeys = yearDays.map(formatDateKey);
-  const doneDays = yearKeys.filter((key) => (allCounts[key] || 0) > 0).length;
-  const rate = yearDays.length ? Math.round((doneDays / yearDays.length) * 100) : 0;
-  elements.yearDoneDays.textContent = `🏆 ${doneDays} 天`;
-  elements.yearRate.textContent = `🔥 ${rate}%`;
+function renderYearMonthMatrix(allCounts) {
+  elements.yearAxis.innerHTML = "";
+  [1, 5, 10, 15, 20, 25, 30].forEach((day) => {
+    const marker = document.createElement("span");
+    marker.textContent = String(day);
+    marker.style.gridRow = String(day);
+    elements.yearAxis.appendChild(marker);
+  });
+
+  Array.from({ length: 12 }, (_, month) => {
+    const monthNode = document.createElement("span");
+    monthNode.textContent = `${month + 1}月`;
+    monthNode.style.gridColumn = String(month + 1);
+    elements.yearMonthLabels.appendChild(monthNode);
+  });
+
+  for (let day = 1; day <= 31; day += 1) {
+    for (let month = 0; month < 12; month += 1) {
+      const date = new Date(uiState.statsYear, month, day);
+      const isValid = date.getMonth() === month;
+      const cell = createYearHeatCell(isValid ? date : null, allCounts, true);
+      cell.style.gridColumn = String(month + 1);
+      cell.style.gridRow = String(day);
+      elements.yearHeatmapGrid.appendChild(cell);
+    }
+  }
+}
+
+function createYearHeatCell(date, allCounts, showValue = false) {
+  const cell = document.createElement("button");
+  cell.type = "button";
+  cell.className = "year-heatmap-cell";
+
+  if (!date || date.getFullYear() !== uiState.statsYear) {
+    cell.classList.add("is-out");
+    return cell;
+  }
+
+  const key = formatDateKey(date);
+  const count = allCounts[key] || 0;
+  if (count > 0 && count <= 1) cell.classList.add("lv1");
+  if (count > 1 && count <= 3) cell.classList.add("lv2");
+  if (count > 3) cell.classList.add("lv3");
+  if (count === 0) cell.classList.add("is-empty");
+  if (showValue && count > 0) cell.textContent = String(Math.min(count, 9));
+  cell.title = `${key}：${count} 次`;
+  return cell;
 }
 
 function getDailyCounts() {
