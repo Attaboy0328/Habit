@@ -89,8 +89,9 @@ const elements = {
   timerPanels: Array.from(document.querySelectorAll(".timer-panel")),
   overallHeatmapTitle: document.querySelector("#overallHeatmapTitle"),
   overallHeatmapHint: document.querySelector("#overallHeatmapHint"),
-  overallWeekdayLabels: document.querySelector("#overallWeekdayLabels"),
+  overallDateAxis: document.querySelector("#overallDateAxis"),
   overallHeatmap: document.querySelector("#overallHeatmap"),
+  habitCountList: document.querySelector("#habitCountList"),
   statRate: document.querySelector("#statRate"),
   statCheckins: document.querySelector("#statCheckins"),
   statActiveHabits: document.querySelector("#statActiveHabits"),
@@ -422,11 +423,12 @@ function renderStats() {
     elements.overallHeatmapHint.textContent = "按月份查看全年热力分布";
   }
 
+  renderDateAxis(periodDates);
+  renderHabitCounts(periodKeys);
   renderOverallHeatmap();
 }
 
 function renderOverallHeatmap() {
-  elements.overallWeekdayLabels.innerHTML = weekdayLabels().map((d) => `<span>${d}</span>`).join("");
   elements.overallHeatmap.innerHTML = "";
 
   if (uiState.statsRange === "week") {
@@ -475,6 +477,63 @@ function renderHeatRangeBlock(days, label, compact) {
   block.appendChild(heading);
   block.appendChild(grid);
   elements.overallHeatmap.appendChild(block);
+}
+
+function renderDateAxis(periodDates) {
+  const labels = getAxisLabels(periodDates, uiState.statsRange);
+  elements.overallDateAxis.innerHTML = labels.map((item) => `<div class="date-axis__item"><span>${item.weekday}</span><strong>${item.date}</strong></div>`).join("");
+}
+
+function getAxisLabels(periodDates, range) {
+  if (!periodDates.length) return [];
+  if (range === "week") {
+    return periodDates.map((date) => ({
+      weekday: `周${weekdayLabels()[((date.getDay() + 6) % 7)]}`,
+      date: `${date.getMonth() + 1}/${date.getDate()}`
+    }));
+  }
+
+  if (range === "month") {
+    const picks = [0, 6, 13, 20, 29]
+      .filter((idx) => idx < periodDates.length)
+      .map((idx) => periodDates[idx]);
+    return picks.map((date) => ({
+      weekday: `周${weekdayLabels()[((date.getDay() + 6) % 7)]}`,
+      date: `${date.getMonth() + 1}/${date.getDate()}`
+    }));
+  }
+
+  return [0, 30, 60, 90, 120, 180, 240, 300, 364]
+    .filter((idx) => idx < periodDates.length)
+    .map((idx) => {
+      const date = periodDates[idx];
+      return {
+        weekday: `${date.getMonth() + 1}月`,
+        date: `${date.getMonth() + 1}/${date.getDate()}`
+      };
+    });
+}
+
+function renderHabitCounts(periodKeys) {
+  elements.habitCountList.innerHTML = "";
+  if (!state.habits.length) {
+    elements.habitCountList.innerHTML = '<div class="empty-box">暂无习惯统计。</div>';
+    return;
+  }
+
+  const rows = state.habits
+    .map((habit) => {
+      const count = periodKeys.reduce((sum, key) => sum + (habit.history[key] ? 1 : 0), 0);
+      return { habit, count };
+    })
+    .sort((a, b) => b.count - a.count);
+
+  rows.forEach(({ habit, count }) => {
+    const item = document.createElement("div");
+    item.className = "habit-count-item";
+    item.innerHTML = `<span class="habit-count-item__name">${habit.icon} ${habit.name}</span><strong>${count}</strong>`;
+    elements.habitCountList.appendChild(item);
+  });
 }
 
 function renderTimerMode() {

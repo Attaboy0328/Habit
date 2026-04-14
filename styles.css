@@ -177,6 +177,56 @@ button:active { transform: scale(0.97); }
 .heat-cell.lv2 { background: color-mix(in srgb, var(--accent) 60%, transparent); }
 .heat-cell.lv3 { background: color-mix(in srgb, var(--accent) 85%, transparent); }
 
+.date-axis {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+  padding-bottom: 2px;
+}
+.date-axis__item {
+  min-width: 74px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+}
+.date-axis__item span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.date-axis__item strong {
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+}
+
+.habit-count-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+.habit-count-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: color-mix(in srgb, var(--surface-soft) 85%, transparent);
+}
+.habit-count-item__name {
+  font-size: 13px;
+  max-width: 75%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.habit-count-item strong {
+  font-family: "Outfit", sans-serif;
+  font-size: 16px;
+}
+
 .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .setting-row h3 { margin: 0 0 4px; }
 .setting-row p { margin: 0; color: var(--muted); font-size: 13px; }
