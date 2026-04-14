@@ -508,7 +508,7 @@ function getAxisLabels(periodDates, range) {
     .map((idx) => {
       const date = periodDates[idx];
       return {
-        weekday: `${date.getMonth() + 1}月`,
+        weekday: `${date.getMonth() + 1}月 周${weekdayLabels()[((date.getDay() + 6) % 7)]}`,
         date: `${date.getMonth() + 1}/${date.getDate()}`
       };
     });
