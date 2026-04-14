@@ -1,5 +1,7 @@
 ﻿const STORAGE_KEY = "habit-mobile-v3";
 const SETTINGS_KEY = "habit-mobile-settings-v3";
+const REMINDER_KEY = "habit-mobile-reminders-v1";
+const BIO_CRED_KEY = "habit-mobile-bio-cred-v1";
 
 const PRESET_CATEGORIES = [
   { id: "study", name: "学习" },
@@ -90,7 +92,6 @@ const elements = {
   timerPanels: Array.from(document.querySelectorAll(".timer-panel")),
   overallHeatmapTitle: document.querySelector("#overallHeatmapTitle"),
   overallHeatmapHint: document.querySelector("#overallHeatmapHint"),
-  overallDateAxis: document.querySelector("#overallDateAxis"),
   overallHeatmap: document.querySelector("#overallHeatmap"),
   habitCompare: document.querySelector("#habitCompare"),
   habitCountList: document.querySelector("#habitCountList"),
@@ -108,18 +109,37 @@ const elements = {
   pomoPlus: document.querySelector("#pomoPlus"),
   pomoCustomMinutes: document.querySelector("#pomoCustomMinutes"),
   ringtoneSelect: document.querySelector("#ringtoneSelect"),
-  ringtonePreviewBtns: Array.from(document.querySelectorAll("[data-ringtone-preview]")),
+  ringtonePreviewBtn: document.querySelector("#ringtonePreviewBtn"),
   pomoQuickBtns: Array.from(document.querySelectorAll("[data-pomo-minutes]")),
   stopwatchDisplay: document.querySelector("#stopwatchDisplay"),
+  stopwatchHint: document.querySelector("#stopwatchHint"),
+  lapList: document.querySelector("#lapList"),
   swStart: document.querySelector("#swStart"),
   swPause: document.querySelector("#swPause"),
   swReset: document.querySelector("#swReset"),
   themeSwatches: document.querySelector("#themeSwatches"),
-  darkModeToggle: document.querySelector("#darkModeToggle")
+  darkModeToggle: document.querySelector("#darkModeToggle"),
+  reminderList: document.querySelector("#reminderList"),
+  notifyPermissionBtn: document.querySelector("#notifyPermissionBtn"),
+  downloadBackupBtn: document.querySelector("#downloadBackupBtn"),
+  copyBackupBtn: document.querySelector("#copyBackupBtn"),
+  importBackupInput: document.querySelector("#importBackupInput"),
+  exportCsvBtn: document.querySelector("#exportCsvBtn"),
+  exportPdfBtn: document.querySelector("#exportPdfBtn"),
+  registerBioBtn: document.querySelector("#registerBioBtn"),
+  unlockNowBtn: document.querySelector("#unlockNowBtn"),
+  lockNowBtn: document.querySelector("#lockNowBtn"),
+  flipStartToggle: document.querySelector("#flipStartToggle"),
+  motionPermissionBtn: document.querySelector("#motionPermissionBtn"),
+  privacyLock: document.querySelector("#privacyLock"),
+  privacyUnlockBtn: document.querySelector("#privacyUnlockBtn"),
+  privacyFallbackBtn: document.querySelector("#privacyFallbackBtn")
 };
 
 const state = loadState();
 const settings = loadSettings();
+const reminderState = loadReminders();
+let soundContext = null;
 
 const uiState = {
   activeScreen: "home",
@@ -132,7 +152,9 @@ const uiState = {
   pomoTimer: null,
   swElapsedMs: 0,
   swTimer: null,
-  swStartedAt: 0
+  swStartedAt: 0,
+  laps: [],
+  reminderTick: null
 };
 
 bootstrap();
@@ -143,6 +165,10 @@ function bootstrap() {
   initThemeSwatches();
   applySettings();
   renderAll();
+  renderReminders();
+  startReminderTicker();
+  initMotionListener();
+  if (settings.privacyEnabled) showPrivacyLock();
 }
 
 function bindEvents() {
@@ -183,12 +209,7 @@ function bindEvents() {
     saveSettings();
     playRingtone(settings.ringtone, 1.2);
   });
-  elements.ringtonePreviewBtns.forEach((button) => {
-    button.addEventListener("click", () => {
-      const key = button.dataset.ringtonePreview || "soft";
-      playRingtone(key, 1.2);
-    });
-  });
+  elements.ringtonePreviewBtn.addEventListener("click", () => playRingtone(settings.ringtone, 1.3));
 
   elements.pomoStart.addEventListener("click", startPomodoro);
   elements.pomoPause.addEventListener("click", pausePomodoro);
@@ -203,7 +224,10 @@ function bindEvents() {
   elements.swReset.addEventListener("click", () => {
     pauseStopwatch();
     uiState.swElapsedMs = 0;
+    uiState.laps = [];
+    renderLaps();
     renderStopwatch();
+    elements.stopwatchHint.textContent = "准备开始专注";
   });
 
   elements.darkModeToggle.addEventListener("change", () => {
@@ -212,6 +236,22 @@ function bindEvents() {
     applySettings();
   });
   elements.addCustomHabit.addEventListener("click", addCustomHabit);
+  elements.notifyPermissionBtn.addEventListener("click", requestNotificationPermission);
+  elements.downloadBackupBtn.addEventListener("click", downloadBackupJson);
+  elements.copyBackupBtn.addEventListener("click", copyBackupJson);
+  elements.importBackupInput.addEventListener("change", importBackupJson);
+  elements.exportCsvBtn.addEventListener("click", exportCsvReport);
+  elements.exportPdfBtn.addEventListener("click", exportPrintablePdf);
+  elements.registerBioBtn.addEventListener("click", registerBiometric);
+  elements.unlockNowBtn.addEventListener("click", biometricUnlock);
+  elements.lockNowBtn.addEventListener("click", showPrivacyLock);
+  elements.privacyUnlockBtn.addEventListener("click", biometricUnlock);
+  elements.privacyFallbackBtn.addEventListener("click", fallbackUnlock);
+  elements.flipStartToggle.addEventListener("change", () => {
+    settings.flipToStart = elements.flipStartToggle.checked;
+    saveSettings();
+  });
+  elements.motionPermissionBtn.addEventListener("click", requestMotionPermission);
 }
 
 function loadState() {
@@ -227,16 +267,29 @@ function loadState() {
 
 function loadSettings() {
   const raw = localStorage.getItem(SETTINGS_KEY);
-  if (!raw) return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft" };
+  if (!raw) return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft", flipToStart: false, privacyEnabled: false };
   try {
     const parsed = JSON.parse(raw);
     return {
       accent: parsed.accent || THEME_COLORS[0],
       darkMode: Boolean(parsed.darkMode),
-      ringtone: parsed.ringtone || "soft"
+      ringtone: parsed.ringtone || "soft",
+      flipToStart: Boolean(parsed.flipToStart),
+      privacyEnabled: Boolean(parsed.privacyEnabled)
     };
   } catch {
-    return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft" };
+    return { accent: THEME_COLORS[0], darkMode: false, ringtone: "soft", flipToStart: false, privacyEnabled: false };
+  }
+}
+
+function loadReminders() {
+  const raw = localStorage.getItem(REMINDER_KEY);
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
   }
 }
 
@@ -247,6 +300,10 @@ function saveState() {
 function saveSettings() {
   settings.ringtone = elements.ringtoneSelect.value;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function saveReminders() {
+  localStorage.setItem(REMINDER_KEY, JSON.stringify(reminderState));
 }
 
 function initCategoryTabs() {
@@ -290,8 +347,10 @@ function renderAll() {
   renderStats();
   renderPomodoro();
   renderStopwatch();
+  renderLaps();
   renderTimerMode();
   renderImmersiveTimer();
+  renderReminders();
 }
 
 function renderNav() {
@@ -483,7 +542,6 @@ function renderStats() {
     elements.overallHeatmapHint.textContent = "按月份查看全年热力分布";
   }
 
-  renderDateAxis(periodDates);
   renderOverallHeatmap();
   renderHabitCompare(periodKeys);
   renderHabitCounts(periodKeys);
@@ -523,12 +581,14 @@ function renderOverallHeatmap() {
   elements.overallHeatmap.innerHTML = "";
 
   if (uiState.statsRange === "week") {
-    renderHeatRangeBlock(getCurrentWeekDays(), "本周", false);
+    const week = getCurrentWeekDays();
+    renderHeatRangeBlock(week, `本周 ${formatShort(week[0])}-${formatShort(week[6])}`, false);
     return;
   }
 
   if (uiState.statsRange === "month") {
-    renderHeatRangeBlock(getRecentDays(30), "近30天", false);
+    const monthDays = getRecentDays(30);
+    renderHeatRangeBlock(monthDays, `近30天 ${formatShort(monthDays[0])}-${formatShort(monthDays[monthDays.length - 1])}`, false);
     return;
   }
 
@@ -545,6 +605,9 @@ function renderHeatRangeBlock(days, label, compact) {
   block.className = "range-block";
   const heading = document.createElement("h4");
   heading.textContent = label;
+  const weekday = document.createElement("div");
+  weekday.className = "range-weekdays";
+  weekday.innerHTML = `<span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>`;
   const grid = document.createElement("div");
   grid.className = compact ? "range-grid compact" : "range-grid";
 
@@ -566,43 +629,9 @@ function renderHeatRangeBlock(days, label, compact) {
   }
 
   block.appendChild(heading);
+  block.appendChild(weekday);
   block.appendChild(grid);
   elements.overallHeatmap.appendChild(block);
-}
-
-function renderDateAxis(periodDates) {
-  const labels = getAxisLabels(periodDates, uiState.statsRange);
-  elements.overallDateAxis.innerHTML = labels.map((item) => `<div class="date-axis__item"><span>${item.weekday}</span><strong>${item.date}</strong></div>`).join("");
-}
-
-function getAxisLabels(periodDates, range) {
-  if (!periodDates.length) return [];
-  if (range === "week") {
-    return periodDates.map((date) => ({
-      weekday: `周${weekdayLabels()[((date.getDay() + 6) % 7)]}`,
-      date: `${date.getMonth() + 1}/${date.getDate()}`
-    }));
-  }
-
-  if (range === "month") {
-    const picks = [0, 6, 13, 20, 29]
-      .filter((idx) => idx < periodDates.length)
-      .map((idx) => periodDates[idx]);
-    return picks.map((date) => ({
-      weekday: `周${weekdayLabels()[((date.getDay() + 6) % 7)]}`,
-      date: `${date.getMonth() + 1}/${date.getDate()}`
-    }));
-  }
-
-  return [0, 30, 60, 90, 120, 180, 240, 300, 364]
-    .filter((idx) => idx < periodDates.length)
-    .map((idx) => {
-      const date = periodDates[idx];
-      return {
-        weekday: `${date.getMonth() + 1}月 周${weekdayLabels()[((date.getDay() + 6) % 7)]}`,
-        date: `${date.getMonth() + 1}/${date.getDate()}`
-      };
-    });
 }
 
 function renderHabitCounts(periodKeys) {
@@ -648,6 +677,7 @@ function applyPomodoroMinutes(minutes) {
 
 function startPomodoro() {
   if (uiState.pomoTimer) return;
+  ensureAudioReady();
   uiState.pomoTimer = setInterval(() => {
     uiState.pomoLeftSec -= 1;
     if (uiState.pomoLeftSec <= 0) {
@@ -674,7 +704,8 @@ function renderPomodoro() {
 
 function playRingtone(type, seconds = 1.8) {
   if (type === "none") return;
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = ensureAudioReady();
+  if (!ctx) return;
   const safeStop = ctx.currentTime + seconds;
   const addTone = (freq, wave = "sine", gainLevel = 0.08, delay = 0) => {
     const osc = ctx.createOscillator();
@@ -694,25 +725,26 @@ function playRingtone(type, seconds = 1.8) {
   if (type === "soft") [660, 550].forEach((f, i) => addTone(f, "sine", 0.07, i * 0.16));
   else if (type === "bright") [880, 988, 1175].forEach((f, i) => addTone(f, "triangle", 0.09, i * 0.12));
   else if (type === "chime") [523, 659, 784].forEach((f, i) => addTone(f, "sine", 0.08, i * 0.2));
-  else if (type === "rain") [220, 260, 320].forEach((f, i) => addTone(f, "sine", 0.05, i * 0.05));
-  else if (type === "fire") [130, 170, 210].forEach((f, i) => addTone(f, "square", 0.035, i * 0.08));
-  else if (type === "white") addTone(280, "sawtooth", 0.03, 0);
-  else if (type === "wood") [440, 392, 440].forEach((f, i) => addTone(f, "triangle", 0.06, i * 0.22));
-  else if (type === "bowl") [432, 648].forEach((f, i) => addTone(f, "sine", 0.07, i * 0.35));
-  else if (type === "bird") [1568, 1318, 1760].forEach((f, i) => addTone(f, "triangle", 0.06, i * 0.13));
-  else if (type === "stream") [294, 330, 392].forEach((f, i) => addTone(f, "sine", 0.05, i * 0.2));
-
-  setTimeout(() => ctx.close(), seconds * 1000 + 80);
 }
 
 function vibrateOnTimerDone() {
   if ("vibrate" in navigator) navigator.vibrate([120, 60, 120, 60, 180]);
 }
 
+function ensureAudioReady() {
+  if (!soundContext) soundContext = new (window.AudioContext || window.webkitAudioContext)();
+  if (soundContext.state === "suspended") soundContext.resume();
+  return soundContext;
+}
+
 function startStopwatch() {
   if (uiState.swTimer) return;
   uiState.swStartedAt = Date.now();
+  uiState.laps.unshift({ label: "开始", value: elements.stopwatchDisplay.textContent });
+  uiState.laps = uiState.laps.slice(0, 8);
+  renderLaps();
   uiState.swTimer = setInterval(renderStopwatch, 200);
+  elements.stopwatchHint.textContent = "专注中...";
 }
 
 function pauseStopwatch() {
@@ -720,15 +752,37 @@ function pauseStopwatch() {
   clearInterval(uiState.swTimer);
   uiState.swTimer = null;
   uiState.swElapsedMs += Date.now() - uiState.swStartedAt;
+  uiState.laps.unshift({ label: "暂停", value: formatElapsed(uiState.swElapsedMs) });
+  uiState.laps = uiState.laps.slice(0, 8);
+  renderLaps();
   renderStopwatch();
+  elements.stopwatchHint.textContent = "已暂停";
 }
 
 function renderStopwatch() {
   const elapsed = uiState.swTimer ? uiState.swElapsedMs + (Date.now() - uiState.swStartedAt) : uiState.swElapsedMs;
+  elements.stopwatchDisplay.textContent = formatElapsed(elapsed);
+}
+
+function renderLaps() {
+  elements.lapList.innerHTML = "";
+  if (!uiState.laps.length) {
+    elements.lapList.innerHTML = '<div class="empty-box">暂无记录</div>';
+    return;
+  }
+  uiState.laps.forEach((lap) => {
+    const row = document.createElement("div");
+    row.className = "lap-item";
+    row.innerHTML = `<span>${lap.label}</span><strong>${lap.value}</strong>`;
+    elements.lapList.appendChild(row);
+  });
+}
+
+function formatElapsed(elapsed) {
   const hh = Math.floor(elapsed / 3600000);
   const mm = Math.floor((elapsed % 3600000) / 60000);
   const ss = Math.floor((elapsed % 60000) / 1000);
-  elements.stopwatchDisplay.textContent = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 }
 
 function applySettings() {
@@ -736,10 +790,262 @@ function applySettings() {
   document.documentElement.style.setProperty("--accent-strong", settings.accent);
   document.documentElement.dataset.theme = settings.darkMode ? "dark" : "light";
   elements.darkModeToggle.checked = settings.darkMode;
+  elements.flipStartToggle.checked = settings.flipToStart;
   elements.ringtoneSelect.value = settings.ringtone || "soft";
   elements.themeSwatches.querySelectorAll(".swatch").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.accent === settings.accent);
   });
+}
+
+function renderReminders() {
+  elements.reminderList.innerHTML = "";
+  if (!state.habits.length) {
+    elements.reminderList.innerHTML = '<div class="empty-box">先添加习惯后再设置提醒。</div>';
+    return;
+  }
+  state.habits.forEach((habit) => {
+    const row = document.createElement("div");
+    row.className = "reminder-item";
+    const conf = reminderState[habit.id] || { enabled: false, time: "09:00", lastSent: "" };
+    row.innerHTML = `
+      <span>${habit.icon} ${habit.name}</span>
+      <input type="time" value="${conf.time || "09:00"}">
+      <label class="switch">
+        <input type="checkbox" ${conf.enabled ? "checked" : ""}>
+        <span></span>
+      </label>
+    `;
+    const timeInput = row.querySelector('input[type="time"]');
+    const enabledInput = row.querySelector('input[type="checkbox"]');
+    timeInput.addEventListener("change", () => {
+      reminderState[habit.id] = { ...conf, enabled: enabledInput.checked, time: timeInput.value, lastSent: conf.lastSent || "" };
+      saveReminders();
+    });
+    enabledInput.addEventListener("change", () => {
+      reminderState[habit.id] = { ...conf, enabled: enabledInput.checked, time: timeInput.value, lastSent: conf.lastSent || "" };
+      saveReminders();
+    });
+    elements.reminderList.appendChild(row);
+  });
+}
+
+function startReminderTicker() {
+  if (uiState.reminderTick) clearInterval(uiState.reminderTick);
+  uiState.reminderTick = setInterval(checkReminders, 30000);
+}
+
+function checkReminders() {
+  if (Notification.permission !== "granted") return;
+  const now = new Date();
+  const hhmm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const today = formatDateKey(now);
+  state.habits.forEach((habit) => {
+    const conf = reminderState[habit.id];
+    if (!conf || !conf.enabled || conf.time !== hhmm || conf.lastSent === today) return;
+    new Notification(`Habit 提醒：${habit.name}`, { body: `该打卡了：${habit.goal}` });
+    conf.lastSent = today;
+    reminderState[habit.id] = conf;
+  });
+  saveReminders();
+}
+
+function requestNotificationPermission() {
+  if (!("Notification" in window)) {
+    alert("当前浏览器不支持系统通知。");
+    return;
+  }
+  Notification.requestPermission().then((result) => {
+    alert(result === "granted" ? "通知权限已开启" : "通知权限未开启");
+  });
+}
+
+function buildBackupPayload() {
+  return {
+    exportedAt: new Date().toISOString(),
+    state,
+    settings,
+    reminders: reminderState
+  };
+}
+
+function downloadBackupJson() {
+  const blob = new Blob([JSON.stringify(buildBackupPayload(), null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `habit-backup-${formatDateKey(new Date())}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function copyBackupJson() {
+  const text = JSON.stringify(buildBackupPayload(), null, 2);
+  navigator.clipboard.writeText(text).then(() => alert("备份文本已复制"));
+}
+
+function importBackupJson(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  file.text().then((text) => {
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.state?.habits) {
+        state.habits = parsed.state.habits;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+      if (parsed.settings) {
+        Object.assign(settings, parsed.settings);
+        saveSettings();
+      }
+      if (parsed.reminders) {
+        Object.keys(reminderState).forEach((k) => delete reminderState[k]);
+        Object.assign(reminderState, parsed.reminders);
+        saveReminders();
+      }
+      applySettings();
+      renderAll();
+      renderReminders();
+      alert("备份导入成功");
+    } catch {
+      alert("导入失败：文件格式不正确");
+    }
+  });
+}
+
+function exportCsvReport() {
+  const lines = ["habit,goal,total_checkins,current_streak"];
+  state.habits.forEach((habit) => {
+    const total = Object.keys(habit.history).length;
+    let streak = 0;
+    const c = new Date();
+    while (habit.history[formatDateKey(c)]) {
+      streak += 1;
+      c.setDate(c.getDate() - 1);
+    }
+    lines.push(`"${habit.name}","${habit.goal}",${total},${streak}`);
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `habit-report-${formatDateKey(new Date())}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPrintablePdf() {
+  const w = window.open("", "_blank");
+  if (!w) return;
+  const html = `
+    <html><head><title>Habit Weekly Report</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{margin-bottom:8px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style></head>
+    <body><h1>Habit 周报 (${formatDateKey(new Date())})</h1>
+    <table><thead><tr><th>习惯</th><th>目标</th><th>总打卡</th></tr></thead><tbody>
+    ${state.habits.map((h) => `<tr><td>${h.name}</td><td>${h.goal}</td><td>${Object.keys(h.history).length}</td></tr>`).join("")}
+    </tbody></table></body></html>`;
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  w.print();
+}
+
+function randomBuffer(len = 32) {
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return arr;
+}
+
+function toBase64Url(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromBase64Url(base64url) {
+  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = "=".repeat((4 - (base64.length % 4)) % 4);
+  const bin = atob(base64 + pad);
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+
+async function registerBiometric() {
+  if (!window.PublicKeyCredential) {
+    alert("当前浏览器不支持生物识别 WebAuthn。");
+    return;
+  }
+  try {
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: randomBuffer(32),
+        rp: { name: "Habit App" },
+        user: { id: randomBuffer(32), name: "habit-user", displayName: "Habit User" },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+        timeout: 60000,
+        attestation: "none"
+      }
+    });
+    localStorage.setItem(BIO_CRED_KEY, toBase64Url(cred.rawId));
+    settings.privacyEnabled = true;
+    saveSettings();
+    alert("生物识别已注册，可用于 FaceID / 指纹解锁。");
+  } catch (err) {
+    alert(`注册失败：${err.message || "请重试"}`);
+  }
+}
+
+async function biometricUnlock() {
+  if (!window.PublicKeyCredential) {
+    alert("当前浏览器不支持生物识别 WebAuthn。");
+    return;
+  }
+  const stored = localStorage.getItem(BIO_CRED_KEY);
+  if (!stored) {
+    alert("请先在设置中注册生物识别。");
+    return;
+  }
+  try {
+    await navigator.credentials.get({
+      publicKey: {
+        challenge: randomBuffer(32),
+        timeout: 60000,
+        userVerification: "required",
+        allowCredentials: [{ type: "public-key", id: fromBase64Url(stored) }]
+      }
+    });
+    hidePrivacyLock();
+  } catch (err) {
+    alert(`解锁失败：${err.message || "请重试"}`);
+  }
+}
+
+function showPrivacyLock() {
+  if (!settings.privacyEnabled) return;
+  elements.privacyLock.classList.remove("is-hidden");
+}
+
+function hidePrivacyLock() {
+  elements.privacyLock.classList.add("is-hidden");
+}
+
+function fallbackUnlock() {
+  const token = prompt("输入临时口令：HABIT-UNLOCK");
+  if (token === "HABIT-UNLOCK") hidePrivacyLock();
+}
+
+function initMotionListener() {
+  window.addEventListener("deviceorientation", (event) => {
+    if (!settings.flipToStart || uiState.activeScreen !== "timer" || uiState.timerMode !== "pomo") return;
+    if (typeof event.beta === "number" && event.beta > 155 && !uiState.pomoTimer) {
+      startPomodoro();
+    }
+  });
+}
+
+function requestMotionPermission() {
+  const req = window.DeviceOrientationEvent && window.DeviceOrientationEvent.requestPermission;
+  if (typeof req === "function") {
+    req().then((res) => alert(res === "granted" ? "运动权限已开启" : "运动权限未开启")).catch(() => alert("权限请求失败"));
+  } else {
+    alert("该设备无需单独授权或浏览器不支持。");
+  }
 }
 
 function getMaxStreak() {
@@ -787,6 +1093,10 @@ function formatDateKey(date) {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+function formatShort(date) {
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 function weekdayLabels() {
